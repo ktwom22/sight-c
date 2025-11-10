@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Submit Email</title>
+    <style>
+        body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+        input, button { padding: 12px 20px; font-size: 16px; margin-top: 10px; border-radius: 6px; }
+        button { border:none; background-color:#28a745;color:white; cursor:pointer;}
+        button:hover{background-color:#218838;}
+    </style>
+</head>
+<body>
+<h1>Game Complete!</h1>
+<p>Your total score: {{ score }}</p>
+<p>Enter your email to be added to the leaderboard:</p>
+
+<form method="POST">
+    <input type="email" name="email" placeholder="Enter your email" required>
+    <button type="submit">Submit</button>
+</form>
+
+<p><a href="{{ url_for('leaderboard') }}">View Leaderboard</a></p>
+</body>
+</html>

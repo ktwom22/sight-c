@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Street View Guess</title>
+<style>
+body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+#street-view, #map { width: 90%; height: 40vh; margin: 20px auto; border-radius: 12px; }
+button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #28a745; color: white; cursor: pointer; }
+button:hover { background-color: #218838; }
+@media (max-width: 600px) { #street-view, #map { width: 95%; height: 35vh; } button { width: 90%; font-size: 14px; } }
+</style>
+</head>
+<body>
+<h1>🌍 Street View Guess</h1>
+<p>Round {{ round }} | Score: {{ score }}</p>
+
+<div id="street-view"></div>
+<div id="map"></div>
+
+<form method="POST" action="{{ url_for('guess') }}">
+    <input type="hidden" name="lat" id="guess-lat">
+    <input type="hidden" name="lon" id="guess-lon">
+    <button type="submit" id="submit-btn" disabled>Submit Guess</button>
+</form>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+<script>
+var panorama = new google.maps.StreetViewPanorama(
+    document.getElementById('street-view'), {
+        position: {lat: {{ lat }}, lng: {{ lon }}},
+        pov: {heading: {{ heading }}, pitch: 0},
+        zoom: 1,
+        motionTracking: false
+    });
+
+var map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: 0, lng: 0},
+    zoom: 2
+});
+
+var guessMarker = null;
+map.addListener('click', function(event) {
+    if (guessMarker) guessMarker.setMap(null);
+    guessMarker = new google.maps.Marker({
+        position: event.latLng,
+        map: map
+    });
+    document.getElementById('guess-lat').value = event.latLng.lat();
+    document.getElementById('guess-lon').value = event.latLng.lng();
+    document.getElementById('submit-btn').disabled = false;
+});
+</script>
+</body>
+</html>

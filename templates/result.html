@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Result</title>
+<style>
+body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+#map { width: 90%; height: 50vh; margin: 20px auto; border-radius: 12px; }
+button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #007bff; color: white; cursor: pointer; }
+button:hover { background-color: #0056b3; }
+@media (max-width: 600px) { #map { width: 95%; height: 35vh; } button { width: 90%; font-size: 14px; } }
+</style>
+</head>
+<body>
+<h1>Round {{ round }} Result</h1>
+<p>You were {{ distance|round(2) }} km away! Round score: {{ round_score }} | Total score: {{ score }}</p>
+
+<div id="map"></div>
+<form action="{{ url_for('next_round') }}">
+    <button type="submit">Next Round</button>
+</form>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+<script>
+var guessedLat = {{ guessed_lat }};
+var guessedLng = {{ guessed_lon }};
+var actualLat = {{ actual_lat }};
+var actualLng = {{ actual_lon }};
+var centerLat = (guessedLat + actualLat)/2;
+var centerLng = (guessedLng + actualLng)/2;
+
+var map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: centerLat, lng: centerLng},
+    zoom: 2
+});
+
+var guessMarker = new google.maps.Marker({position:{lat: guessedLat, lng: guessedLng}, map: map, title:"Your Guess", icon:"http://maps.google.com/mapfiles/ms/icons/blue-dot.png"});
+var actualMarker = new google.maps.Marker({position:{lat: actualLat, lng: actualLng}, map: map, title:"Actual Location", icon:"http://maps.google.com/mapfiles/ms/icons/red-dot.png"});
+
+var line = new google.maps.Polyline({
+    path:[{lat: guessedLat, lng: guessedLng},{lat: actualLat, lng: actualLng}],
+    geodesic: true,
+    strokeColor:'#FF0000',
+    strokeOpacity:0.8,
+    strokeWeight:3,
+    map: map
+});
+
+var bounds = new google.maps.LatLngBounds();
+bounds.extend(new google.maps.LatLng(guessedLat, guessedLng));
+bounds.extend(new google.maps.LatLng(actualLat, actualLng));
+map.fitBounds(bounds);
+</script>
+</body>
+</html>
