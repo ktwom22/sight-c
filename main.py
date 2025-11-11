@@ -175,6 +175,35 @@ def leaderboard():
     entries.sort(key=lambda x: x["score"], reverse=True)
     return render_template("leaderboard.html", entries=entries)
 
+@app.route("/robots.txt")
+def robots_txt():
+    lines = [
+        "User-Agent: *",
+        "Disallow:",  # allow all pages
+        "Sitemap: https://yourdomain.com/sitemap.xml"  # 👈 replace with your real domain
+    ]
+    return "\n".join(lines), 200, {"Content-Type": "text/plain"}
+
+@app.route("/sitemap.xml")
+def sitemap():
+    pages = []
+
+    # Add static routes (you can add more)
+    static_routes = ["index", "leaderboard", "result"]
+    for route in static_routes:
+        url = url_for(route, _external=True)
+        pages.append(f"<url><loc>{url}</loc></url>")
+
+    # Optional: add last modified date
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(pages)}
+</urlset>"""
+
+    return xml, 200, {"Content-Type": "application/xml"}
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5010))
     app.run(host="0.0.0.0", port=port, debug=True)
