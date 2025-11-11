@@ -6,43 +6,104 @@
     <title>Round {{ round }} Result - GeoGuesser</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-    /* Existing styles omitted for brevity */
-
-    /* Next Round button */
-    .next-btn {
-        display: block;
-        width: 200px;
-        margin: 25px auto 0;
-        padding: 12px 0;
-        text-align: center;
-        background-color: #3498db;
-        color: #fff;
-        text-decoration: none;
-        font-weight: bold;
-        border-radius: 8px;
-        transition: background 0.3s;
-    }
-
-    .next-btn:hover {
-        background-color: #2980b9;
-    }
-
-    /* Mobile-specific styling */
-    @media (max-width: 768px) {
-        .next-btn {
-            position: fixed;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
+        body {
+            font-family: 'Roboto', sans-serif;
             margin: 0;
-            z-index: 9999;
-            font-size: 18px;
-            padding: 15px 0;
+            padding: 0;
+            background: #f4f6f8;
+            color: #333;
         }
-    }
-</style>
 
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+            flex-wrap: wrap;
+        }
+
+        .scorebox {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            width: 30%;
+            margin: 5px 0;
+        }
+
+        .scorebox h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+
+        .scorebox p {
+            margin: 5px 0 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .distance-bar {
+            font-size: 24px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 450px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+        /* Next Round button */
+        .next-btn {
+            display: block;
+            width: 200px;
+            margin: 25px auto 0;
+            padding: 12px 0;
+            text-align: center;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .next-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* Mobile-specific button */
+        @media (max-width: 768px) {
+            .next-btn {
+                position: fixed;
+                bottom: 15px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 90%;
+                margin: 0;
+                z-index: 9999;
+                font-size: 18px;
+                padding: 15px 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -65,25 +126,28 @@
 
         <div class="distance-bar">{{ result.bar }}</div>
 
+        <!-- Map -->
         <div id="map"></div>
 
+        <!-- Next Round Button -->
         <a class="next-btn" href="{{ url_for('index') }}">Next Round</a>
     </div>
 
     <!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
     <script>
         const guessedLat = {{ result.guessed_lat }};
         const guessedLng = {{ result.guessed_lon }};
         const actualLat = {{ result.actual_lat }};
         const actualLng = {{ result.actual_lon }};
 
+        // Initialize map
         const map = new google.maps.Map(document.getElementById("map"), {
             zoom: 4,
-            center: { lat: (guessedLat + actualLat) / 2, lng: (guessedLng + actualLng) / 2 }
+            center: { lat: (guessedLat + actualLat)/2, lng: (guessedLng + actualLng)/2 }
         });
 
-        // Guess pin (blue)
+        // User's guess pin (blue)
         const guessMarker = new google.maps.Marker({
             position: { lat: guessedLat, lng: guessedLng },
             map: map,
@@ -91,7 +155,7 @@
             icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
         });
 
-        // Actual pin (red)
+        // Actual location pin (red)
         const actualMarker = new google.maps.Marker({
             position: { lat: actualLat, lng: actualLng },
             map: map,
@@ -99,7 +163,7 @@
             icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
         });
 
-        // Line between pins
+        // Line between guess and actual
         const line = new google.maps.Polyline({
             path: [
                 { lat: guessedLat, lng: guessedLng },
@@ -112,7 +176,7 @@
             map: map
         });
 
-        // Adjust map bounds to show both pins
+        // Fit map to show both markers
         const bounds = new google.maps.LatLngBounds();
         bounds.extend({lat: guessedLat, lng: guessedLng});
         bounds.extend({lat: actualLat, lng: actualLng});
