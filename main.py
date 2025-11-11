@@ -115,10 +115,16 @@ def round_result():
     results = session.get("results", [])
     if not results:
         return redirect(url_for("index"))
-    last_result = results[-1]  # Show only the latest round
+    last_result = results[-1]
     score = session.get("score", 0)
     round_num = last_result["round"]
-    return render_template("round_result.html", result=last_result, score=score, round=round_num)
+    return render_template(
+        "round_result.html",
+        result=last_result,
+        score=score,
+        round=round_num,
+        api_key=GOOGLE_API_KEY  # make sure this is passed
+    )
 
 
 
