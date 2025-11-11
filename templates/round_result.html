@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Round {{ round }} Result - GeoGuesser</title>
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
     <h1>Round {{ round }} Result</h1>
@@ -11,6 +17,57 @@
     <p>Total score: {{ score }}</p>
     <p>Distance bar: {{ result.bar }}</p>
 
+    <div id="map"></div>
+
     <a href="{{ url_for('index') }}">Next Round</a>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+    <script>
+        const guessedLat = {{ result.guessed_lat }};
+        const guessedLng = {{ result.guessed_lon }};
+        const actualLat = {{ result.actual_lat }};
+        const actualLng = {{ result.actual_lon }};
+
+        const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 4,
+            center: { lat: (guessedLat + actualLat) / 2, lng: (guessedLng + actualLng) / 2 }
+        });
+
+        // Guess pin (blue)
+        const guessMarker = new google.maps.Marker({
+            position: { lat: guessedLat, lng: guessedLng },
+            map: map,
+            title: "Your Guess",
+            icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+        });
+
+        // Actual pin (red)
+        const actualMarker = new google.maps.Marker({
+            position: { lat: actualLat, lng: actualLng },
+            map: map,
+            title: "Actual Location",
+            icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        });
+
+        // Line between pins
+        const line = new google.maps.Polyline({
+            path: [
+                { lat: guessedLat, lng: guessedLng },
+                { lat: actualLat, lng: actualLng }
+            ],
+            geodesic: true,
+            strokeColor: "#FF0000",
+            strokeOpacity: 1.0,
+            strokeWeight: 2,
+            map: map
+        });
+
+        // Adjust map bounds to show both pins
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({lat: guessedLat, lng: guessedLng});
+        bounds.extend({lat: actualLat, lng: actualLng});
+        map.fitBounds(bounds);
+    </script>
 </body>
 </html>
