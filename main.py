@@ -1,8 +1,17 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import random, math, csv, os, json, datetime
+from flask_session import Session  # <-- added
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+
+# -----------------------------
+# Flask-Session configuration
+# -----------------------------
+app.config["SESSION_TYPE"] = "filesystem"  # store session server-side
+app.config["SESSION_FILE_DIR"] = "./.flask_session"  # optional folder for session files
+app.config["SESSION_PERMANENT"] = False
+Session(app)  # initialize
 
 GOOGLE_API_KEY = "AIzaSyAQI6vnKW5-8lH24bGygQ7eNhPM79677ps"
 
