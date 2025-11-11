@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Game Results</title>
+<style>
+body { font-family: Arial; text-align: center; background: #f4f4f4; padding:20px; }
+button { padding:12px 25px; margin-top:10px; font-size:16px; border-radius:6px; border:none; background-color:#007bff; color:white; cursor:pointer;}
+button:hover{background-color:#0056b3;}
+input[type="email"]{padding:10px; font-size:16px; width:250px; margin-top:10px;}
+
+/* Popup styling */
+#share-popup {
+    display:none;
+    position: fixed;
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+    background:#fff; padding:20px; border-radius:12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index:1000; width:300px;
+}
+#share-popup textarea { width:100%; height:120px; font-size:16px; text-align:center; margin-bottom:10px; }
+#overlay {
+    display:none;
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.5);
+    z-index:500;
+}
+.close-btn { background:#dc3545; margin-left:5px;}
+</style>
+</head>
+<body>
+
+<h1>🏁 Game Complete!</h1>
+<p>Total Score: <strong>{{ score }}</strong></p>
+
+<button onclick="openShare()">Share Results</button>
+
+<form method="POST">
+    <h3>Enter your email for leaderboard:</h3>
+    <input type="email" name="email" placeholder="Your email" required>
+    <br>
+    <button type="submit">Submit Score</button>
+</form>
+
+<!-- Overlay -->
+<div id="overlay"></div>
+
+<!-- Share popup -->
+<div id="share-popup">
+    <button class="close-btn" onclick="closeShare()">X</button>
+    <h3>Share your results</h3>
+    <textarea id="share-text" readonly>{{ share_text }}</textarea>
+    <br>
+    <button onclick="copyShare()">Copy Results</button>
+</div>
+
+<script>
+function openShare() {
+    document.getElementById("share-popup").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+}
+
+function closeShare() {
+    document.getElementById("share-popup").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+}
+
+function copyShare() {
+    var copyText = document.getElementById("share-text");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    alert("Results copied to clipboard!");
+}
+</script>
+
+</body>
+</html>

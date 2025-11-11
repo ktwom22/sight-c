@@ -1,23 +1,84 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K0NCHYWJDB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-K0NCHYWJDB');
+</script>
+
 <meta charset="utf-8">
-<title>Result</title>
+<title>Round {{ round }} Result</title>
 <style>
-body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
-#map { width: 90%; height: 50vh; margin: 20px auto; border-radius: 12px; }
-button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #007bff; color: white; cursor: pointer; }
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f4f4f4;
+  margin:0;
+  padding:0;
+}
+#map {
+  width: 90%;
+  height: 50vh;
+  margin: 20px auto;
+  border-radius: 12px;
+}
+button {
+  padding: 12px 25px;
+  font-size: 16px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
 button:hover { background-color: #0056b3; }
-@media (max-width: 600px) { #map { width: 95%; height: 35vh; } button { width: 90%; font-size: 14px; } }
+.result-line {
+  font-size: 22px;
+  margin: 15px 0;
+}
+.summary {
+  font-size: 18px;
+  margin-top: 10px;
+}
+@media (max-width: 600px) {
+  #map { width: 95%; height: 35vh; }
+  button { width: 90%; font-size: 14px; }
+}
 </style>
 </head>
 <body>
 <h1>Round {{ round }} Result</h1>
-<p>You were {{ distance|round(2) }} km away! Round score: {{ round_score }} | Total score: {{ score }}</p>
+
+<!-- 🧭 Distance + Score Summary -->
+<p class="summary">
+  You were <strong>{{ distance_km }} km</strong> ({{ distance_mi }} mi) away!<br>
+  Round Score: <strong>{{ round_score }}</strong> | Total Score: <strong>{{ score }}</strong>
+</p>
+
+<!-- 🗺️ Emoji Visual Line -->
+<div class="result-line">
+  {% if distance_km < 1 %}
+    📍📍 Perfect! ({{ distance_km }} km)
+  {% elif distance_km < 10 %}
+    📍🟩📍 Very Close ({{ distance_km }} km)
+  {% elif distance_km < 100 %}
+    📍🟨📍 Close ({{ distance_km }} km)
+  {% elif distance_km < 500 %}
+    📍🟧📍 Far ({{ distance_km }} km)
+  {% else %}
+    📍🟥📍 Way Off ({{ distance_km }} km)
+  {% endif %}
+</div>
 
 <div id="map"></div>
+
 <form action="{{ url_for('next_round') }}">
-    <button type="submit">Next Round</button>
+  <button type="submit">Next Round</button>
 </form>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
@@ -34,8 +95,19 @@ var map = new google.maps.Map(document.getElementById('map'), {
     zoom: 2
 });
 
-var guessMarker = new google.maps.Marker({position:{lat: guessedLat, lng: guessedLng}, map: map, title:"Your Guess", icon:"http://maps.google.com/mapfiles/ms/icons/blue-dot.png"});
-var actualMarker = new google.maps.Marker({position:{lat: actualLat, lng: actualLng}, map: map, title:"Actual Location", icon:"http://maps.google.com/mapfiles/ms/icons/red-dot.png"});
+var guessMarker = new google.maps.Marker({
+    position:{lat: guessedLat, lng: guessedLng},
+    map: map,
+    title:"Your Guess",
+    icon:"http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+});
+
+var actualMarker = new google.maps.Marker({
+    position:{lat: actualLat, lng: actualLng},
+    map: map,
+    title:"Actual Location",
+    icon:"http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+});
 
 var line = new google.maps.Polyline({
     path:[{lat: guessedLat, lng: guessedLng},{lat: actualLat, lng: actualLng}],

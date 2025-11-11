@@ -28,14 +28,26 @@ def haversine(lat1, lon1, lat2, lon2):
 def index():
     round_num = session.get("round", 1)
     score = session.get("score", 0)
+    used_locations = session.get("used_locations", [])
 
     if round_num > 5:
         return redirect(url_for("email_submit"))
 
-    location = random.choice(LOCATIONS)
+    # Filter out already-used locations
+    available_locations = [loc for loc in LOCATIONS if loc[0] not in used_locations]
+
+    # If all locations used, reset (or end game)
+    if not available_locations:
+        available_locations = LOCATIONS.copy()
+        used_locations = []
+
+    location = random.choice(available_locations)
     name, lat, lon = location
     heading = random.randint(0, 360)
 
+    # Update session data
+    used_locations.append(name)
+    session["used_locations"] = used_locations
     session["actual_name"] = name
     session["actual_lat"] = lat
     session["actual_lon"] = lon
@@ -51,6 +63,7 @@ def index():
         round=round_num,
         score=score
     )
+
 
 @app.route("/guess", methods=["POST"])
 def guess():
