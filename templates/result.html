@@ -81,6 +81,17 @@ button:hover { background-color: #0056b3; }
 <form action="{{ url_for('next_round') }}">
   <button type="submit">Next Round</button>
 </form>
+<div class="eg-affiliate-banners"
+     data-program="us-expedia"
+     data-network="pz"
+     data-layout="medium-rectangle"
+     data-image="adventure"
+     data-message="find-perfect-getaway-package"
+     data-camref="1100l5uUXS"
+     data-pubref=""
+     data-link="home">
+</div>
+
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
 <script>
@@ -123,6 +134,10 @@ var bounds = new google.maps.LatLngBounds();
 bounds.extend(new google.maps.LatLng(guessedLat, guessedLng));
 bounds.extend(new google.maps.LatLng(actualLat, actualLng));
 map.fitBounds(bounds);
+
+
 </script>
+<script class="eg-affiliate-banners-script" src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js"></script>
+
 </body>
 </html>
