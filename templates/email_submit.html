@@ -7,6 +7,18 @@
     pre { background: #fff; padding: 15px; border-radius: 8px; display: inline-block; text-align: left; }
     button { padding: 10px 15px; border: none; border-radius: 5px; background: #4caf50; color: white; cursor: pointer; }
   </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Game",
+  "name": "GeoGuesser",
+  "description": "Guess locations from Google Street View images and compete for the highest score.",
+  "url": "{{ request.url }}",
+  "image": "{{ url_for('static', filename='images/og-image.png', _external=True) }}"
+}
+</script>
+
+
 </head>
 <body>
   <h2>🏁 Game Over! Your Total Score: {{ score }}</h2>
