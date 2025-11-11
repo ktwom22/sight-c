@@ -22,7 +22,7 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.before_request
 def setup_game():
-    """Reset daily game if first visit today"""
+    """Set up 5-round game once per session (or daily if desired)"""
     today = datetime.date.today().isoformat()
     if session.get("last_played_date") != today:
         session.clear()
@@ -30,13 +30,8 @@ def setup_game():
         session["round"] = 1
         session["results"] = []
         session["game_locations"] = random.sample(ALL_LOCATIONS, 5)
+        session["instructions_shown"] = False
         session["last_played_date"] = today
-        session["instructions_shown"] = False  # Add instructions flag
-
-@app.route("/instructions_shown", methods=["POST"])
-def instructions_shown():
-    session["instructions_shown"] = True
-    return "", 204
 
 @app.route("/")
 def index():
@@ -63,6 +58,11 @@ def index():
         score=score,
         show_instructions=show_instructions
     )
+
+@app.route("/instructions_shown", methods=["POST"])
+def instructions_shown():
+    session["instructions_shown"] = True
+    return "", 204
 
 @app.route("/guess", methods=["POST"])
 def guess():
@@ -109,7 +109,11 @@ def guess():
     session["score"] = score
     session["round"] = round_num + 1
 
-    return redirect(url_for("result"))
+    # If last round, go to results, else next round
+    if round_num >= 5:
+        return redirect(url_for("result"))
+    else:
+        return redirect(url_for("index"))
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
@@ -138,13 +142,6 @@ def result():
             return redirect(url_for("leaderboard"))
 
     return render_template("final_results.html", score=score, share_text=share_text)
-
-@app.route("/next")
-def next_round():
-    round_num = session.get("round", 1)
-    if round_num > 5:
-        return redirect(url_for("result"))
-    return redirect(url_for("index"))
 
 @app.route("/leaderboard")
 def leaderboard():
