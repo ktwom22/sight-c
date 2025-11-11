@@ -67,18 +67,13 @@ def instructions_shown():
 @app.route("/guess", methods=["POST"])
 def guess():
     guessed_lat = float(request.form.get("lat"))
-    guessed_lon = float(request.form.get("lon"))
-
     actual_lat = session.get("actual_lat")
     actual_lon = session.get("actual_lon")
     round_num = session.get("round", 1)
     score = session.get("score", 0)
 
-    # Calculate distance
-    distance_km = round(haversine(actual_lat, actual_lon, guessed_lat, guessed_lon), 1)
-    distance_mi = round(distance_km * 0.621371, 1)
-
-    # Scoring
+    # Calculate distance & score
+    distance_km = round(haversine(actual_lat, actual_lon, guessed_lat, session.get("actual_lon")), 1)
     round_score = max(0, int(1000 - distance_km))
     score += round_score
 
@@ -92,16 +87,16 @@ def guess():
     else:
         bar = "📍🟥📍"
 
-    # Store round result
+    # Store result
     results = session.get("results", [])
     results.append({
         "round": round_num,
         "bar": bar,
         "distance_km": distance_km,
-        "distance_mi": distance_mi,
+        "distance_mi": round(distance_km * 0.621371, 1),
         "round_score": round_score,
         "guessed_lat": guessed_lat,
-        "guessed_lon": guessed_lon,
+        "guessed_lon": float(request.form.get("lon")),
         "actual_lat": actual_lat,
         "actual_lon": actual_lon
     })
@@ -109,11 +104,12 @@ def guess():
     session["score"] = score
     session["round"] = round_num + 1
 
-    # If last round, go to results, else next round
+    # Redirect to round result page
     if round_num >= 5:
-        return redirect(url_for("result"))
+        return redirect(url_for("result"))  # Last round, go to final results
     else:
-        return redirect(url_for("index"))
+        return redirect(url_for("round_result"))  # Show round result first
+
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
