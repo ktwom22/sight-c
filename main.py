@@ -108,7 +108,18 @@ def guess():
     if round_num >= 5:
         return redirect(url_for("result"))  # Last round, go to final results
     else:
-        return redirect(url_for("result"))  # Show round result first
+        return redirect(url_for("round_result"))  # Show round result first
+
+@app.route("/round_result")
+def round_result():
+    results = session.get("results", [])
+    if not results:
+        return redirect(url_for("index"))
+    last_result = results[-1]  # Show only the latest round
+    score = session.get("score", 0)
+    round_num = last_result["round"]
+    return render_template("round_result.html", result=last_result, score=score, round=round_num)
+
 
 
 @app.route("/result", methods=["GET", "POST"])

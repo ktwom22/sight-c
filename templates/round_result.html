@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Round {{ round }} Result - GeoGuesser</title>
+</head>
+<body>
+    <h1>Round {{ round }} Result</h1>
+    <p>Distance: {{ result.distance_km }} km ({{ result.distance_mi }} mi)</p>
+    <p>Score this round: {{ result.round_score }}</p>
+    <p>Total score: {{ score }}</p>
+    <p>Distance bar: {{ result.bar }}</p>
+
+    <a href="{{ url_for('index') }}">Next Round</a>
+</body>
+</html>
