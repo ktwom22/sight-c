@@ -77,18 +77,32 @@ button:hover { background-color: #218838; }
 </head>
 <body>
 <!-- Instructions Modal -->
-<div id="instructionsModal">
-  <div id="instructionsContent">
-    <h2>How to Play 🌍</h2>
-    <ul>
-      <li>🔹 You will see a Street View panorama.</li>
-      <li>🔹 Click on the map to make your guess of the location.</li>
-      <li>🔹 After each round, see how close you were with emojis and your score.</li>
-      <li>🔹 Complete all 5 rounds to see your total score and share results!</li>
-    </ul>
-    <button id="closeInstructions">Got it!</button>
+<div id="instructionsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+     background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:1000;">
+  <div style="background:white; padding:30px; border-radius:10px; max-width:500px; text-align:center;">
+    <h2>How to Play</h2>
+    <p>Guess the location in Google Street View as close as possible. After 5 rounds, see your score and share results!</p>
+    <button id="gotItBtn" style="padding:10px 20px; font-size:16px;">Got it!</button>
   </div>
 </div>
+
+<script>
+  // Show modal if the backend tells us to
+  const showInstructions = {{ 'true' if show_instructions else 'false' }};
+  const modal = document.getElementById('instructionsModal');
+
+  if(showInstructions){
+      modal.style.display = 'flex';
+  }
+
+  document.getElementById('gotItBtn').addEventListener('click', () => {
+      // Mark instructions as shown in session
+      fetch('/instructions_shown', {method:'POST'})
+          .then(() => {
+              modal.style.display = 'none'; // hide modal
+          });
+  });
+</script>
 <h1>🌍 Street View Guess</h1>
 <p>Round {{ round }} | Score: {{ score }}</p>
 
