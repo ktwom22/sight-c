@@ -107,9 +107,17 @@ def guess():
     })
     session["results"] = results
     session["score"] = score
-    session["round"] = round_num + 1
 
-    return redirect(url_for("result"))
+    # Increment round
+    round_num += 1
+    session["round"] = round_num
+
+    # Decide next page
+    if round_num > 5:
+        return redirect(url_for("result"))
+    else:
+        return redirect(url_for("index"))
+
 
 
 @app.route("/result", methods=["GET", "POST"])
