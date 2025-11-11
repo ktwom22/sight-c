@@ -2,24 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Round {{ round }} Result - GeoGuesser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .scorebox {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            width: 30%;
+        }
+
+        .scorebox h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+
+        .scorebox p {
+            margin: 5px 0 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .distance-bar {
+            font-size: 24px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
         #map {
-            height: 500px;
             width: 100%;
+            height: 450px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .next-btn {
+            display: block;
+            width: 200px;
+            margin: 25px auto 0;
+            padding: 12px 0;
+            text-align: center;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .next-btn:hover {
+            background-color: #2980b9;
         }
     </style>
 </head>
 <body>
-    <h1>Round {{ round }} Result</h1>
-    <p>Distance: {{ result.distance_km }} km ({{ result.distance_mi }} mi)</p>
-    <p>Score this round: {{ result.round_score }}</p>
-    <p>Total score: {{ score }}</p>
-    <p>Distance bar: {{ result.bar }}</p>
+    <div class="container">
+        <h1>Round {{ round }} Result</h1>
 
-    <div id="map"></div>
+        <div class="scoreboard">
+            <div class="scorebox">
+                <h2>Distance</h2>
+                <p>{{ result.distance_km }} km<br>({{ result.distance_mi }} mi)</p>
+            </div>
+            <div class="scorebox">
+                <h2>Round Score</h2>
+                <p>{{ result.round_score }}</p>
+            </div>
+            <div class="scorebox">
+                <h2>Total Score</h2>
+                <p>{{ score }}</p>
+            </div>
+        </div>
 
-    <a href="{{ url_for('index') }}">Next Round</a>
+        <div class="distance-bar">{{ result.bar }}</div>
+
+        <div id="map"></div>
+
+        <a class="next-btn" href="{{ url_for('index') }}">Next Round</a>
+    </div>
 
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
@@ -57,9 +149,9 @@
                 { lat: actualLat, lng: actualLng }
             ],
             geodesic: true,
-            strokeColor: "#FF0000",
+            strokeColor: "#e74c3c",
             strokeOpacity: 1.0,
-            strokeWeight: 2,
+            strokeWeight: 3,
             map: map
         });
 
