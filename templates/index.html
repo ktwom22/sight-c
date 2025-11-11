@@ -14,6 +14,60 @@
 </script>
 
 <style>
+/* Modal background */
+#instructionsModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content */
+#instructionsContent {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  max-width: 400px;
+  width: 90%;
+  text-align: left;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+#instructionsContent h2 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+#instructionsContent ul {
+  padding-left: 20px;
+}
+
+#instructionsContent li {
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+#closeInstructions {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: #28a745;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#closeInstructions:hover {
+  background-color: #218838;
+}
+
 body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
 #street-view, #map { width: 90%; height: 40vh; margin: 20px auto; border-radius: 12px; }
 button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #28a745; color: white; cursor: pointer; }
@@ -22,8 +76,22 @@ button:hover { background-color: #218838; }
 </style>
 </head>
 <body>
+<!-- Instructions Modal -->
+<div id="instructionsModal">
+  <div id="instructionsContent">
+    <h2>How to Play 🌍</h2>
+    <ul>
+      <li>🔹 You will see a Street View panorama.</li>
+      <li>🔹 Click on the map to make your guess of the location.</li>
+      <li>🔹 After each round, see how close you were with emojis and your score.</li>
+      <li>🔹 Complete all 5 rounds to see your total score and share results!</li>
+    </ul>
+    <button id="closeInstructions">Got it!</button>
+  </div>
+</div>
 <h1>🌍 Street View Guess</h1>
 <p>Round {{ round }} | Score: {{ score }}</p>
+
 
 <div id="street-view"></div>
 <div id="map"></div>

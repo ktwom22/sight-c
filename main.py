@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for
-import random, math, csv, os, json, datetime, hashlib
+import random, math, csv, os, json, datetime
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -20,13 +20,6 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-def get_daily_game_locations():
-    """Return the same 5 random locations for all users each day"""
-    today = datetime.date.today().isoformat()
-    seed = int(hashlib.sha256(today.encode()).hexdigest(), 16) % (10**8)
-    rnd = random.Random(seed)
-    return rnd.sample(ALL_LOCATIONS, 5)
-
 @app.before_request
 def setup_game():
     """Reset daily game if first visit today"""
@@ -36,8 +29,14 @@ def setup_game():
         session["score"] = 0
         session["round"] = 1
         session["results"] = []
-        session["game_locations"] = get_daily_game_locations()
+        session["game_locations"] = random.sample(ALL_LOCATIONS, 5)
         session["last_played_date"] = today
+        session["instructions_shown"] = False  # Add instructions flag
+
+@app.route("/instructions_shown", methods=["POST"])
+def instructions_shown():
+    session["instructions_shown"] = True
+    return "", 204
 
 @app.route("/")
 def index():
@@ -52,6 +51,8 @@ def index():
     session["actual_lon"] = loc["lon"]
     session["heading"] = loc.get("heading", 0)
 
+    show_instructions = not session.get("instructions_shown", False)
+
     return render_template(
         "index.html",
         lat=loc["lat"],
@@ -59,7 +60,8 @@ def index():
         heading=loc.get("heading", 0),
         api_key=GOOGLE_API_KEY,
         round=round_num,
-        score=score
+        score=score,
+        show_instructions=show_instructions
     )
 
 @app.route("/guess", methods=["POST"])
@@ -80,7 +82,7 @@ def guess():
     round_score = max(0, int(1000 - distance_km))
     score += round_score
 
-    # Distance bar (emoji)
+    # Distance bar
     if distance_km < 5:
         bar = "📍🟩📍"
     elif distance_km < 50:
@@ -93,6 +95,7 @@ def guess():
     # Store round result
     results = session.get("results", [])
     results.append({
+        "round": round_num,
         "bar": bar,
         "distance_km": distance_km,
         "distance_mi": distance_mi,
@@ -106,10 +109,7 @@ def guess():
     session["score"] = score
     session["round"] = round_num + 1
 
-    # After last round, go to final results
-    if round_num >= 5:
-        return redirect(url_for("result"))
-    return redirect(url_for("index"))
+    return redirect(url_for("result"))
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
@@ -139,6 +139,13 @@ def result():
 
     return render_template("final_results.html", score=score, share_text=share_text)
 
+@app.route("/next")
+def next_round():
+    round_num = session.get("round", 1)
+    if round_num > 5:
+        return redirect(url_for("result"))
+    return redirect(url_for("index"))
+
 @app.route("/leaderboard")
 def leaderboard():
     entries = []
@@ -152,4 +159,4 @@ def leaderboard():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5010))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
