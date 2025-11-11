@@ -45,8 +45,12 @@ def index():
     session["actual_lat"] = loc["lat"]
     session["actual_lon"] = loc["lon"]
     session["heading"] = loc.get("heading", 0)
-
     show_instructions = not session.get("instructions_shown", False)
+
+    # SEO data
+    seo_title = "GeoGuesser - Play the Ultimate Travel Quiz Game"
+    seo_description = "Guess locations around the world and test your geography skills with GeoGuesser. Travel virtually and challenge yourself!"
+    seo_keywords = "travel game, geography quiz, world map game, virtual travel game, learn geography, travel challenge, GeoGuesser"
 
     return render_template(
         "index.html",
@@ -56,8 +60,12 @@ def index():
         api_key=GOOGLE_API_KEY,
         round=round_num,
         score=score,
-        show_instructions=show_instructions
+        show_instructions=show_instructions,
+        seo_title=seo_title,
+        seo_description=seo_description,
+        seo_keywords=seo_keywords
     )
+
 
 @app.route("/instructions_shown", methods=["POST"])
 def instructions_shown():

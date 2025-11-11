@@ -2,23 +2,19 @@
 <html>
 <head>
 
-<meta charset="utf-8">
-        <!-- SEO Meta Tags -->
-    <title>GeoGuesser Game - Round {{ round }} | Guess the Location!</title>
-    <meta name="description" content="Play GeoGuesser: guess the location from Google Street View images and compete for the highest score!">
-    <meta name="keywords" content="GeoGuesser, geography game, street view game, online game, guessing game">
-    <meta name="author" content="Sight C">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
+    <meta name="keywords" content="{{ seo_keywords }}">
+    <meta name="robots" content="index, follow">
 
-    <!-- Open Graph for social sharing -->
-    <meta property="og:title" content="GeoGuesser Game - Round {{ round }}">
-    <meta property="og:description" content="Guess locations from Google Street View and see how close you are!">
+    <!-- Open Graph (Social Sharing) -->
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
     <meta property="og:type" content="website">
-
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="GeoGuesser Game - Round {{ round }}">
-    <meta name="twitter:description" content="Guess locations from Google Street View and see your score!">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
 
 
 
