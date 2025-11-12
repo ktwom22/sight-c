@@ -22,14 +22,13 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.before_request
 def setup_game():
-    """Set up 5-round game once per session (or daily if desired)"""
     today = datetime.date.today().isoformat()
     if session.get("last_played_date") != today:
         session.clear()
         session["score"] = 0
         session["round"] = 1
         session["results"] = []
-        session["game_locations"] = random.sample(ALL_LOCATIONS, 5)
+        session["game_locations"] = get_daily_locations()  # shared for everyone
         session["instructions_shown"] = False
         session["last_played_date"] = today
 
@@ -114,7 +113,7 @@ def guess():
 
     # Redirect to round result page
     if round_num >= 5:
-        return redirect(url_for("result"))  # Last round, go to final results
+        return redirect(url_for("result_result"))  # Last round, go to final results
     else:
         return redirect(url_for("round_result"))  # Show round result first
 
@@ -154,26 +153,65 @@ def result():
     if request.method == "POST":
         email = request.form.get("email")
         if email:
-            file_exists = os.path.isfile("leaderboard.csv")
-            with open("leaderboard.csv", "a", newline="", encoding="utf-8") as f:
+            today = datetime.date.today().isoformat()
+            filename = f"leaderboard_{today}.csv"
+
+            # Read existing entries
+            entries = {}
+            if os.path.isfile(filename):
+                with open(filename, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        entries[row["email"]] = int(row["score"])
+
+            # Only keep highest score
+            entries[email] = max(entries.get(email, 0), score)
+
+            # Write back
+            with open(filename, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerow({"email": email, "score": score})
+                writer.writeheader()
+                for e, s in entries.items():
+                    writer.writerow({"email": e, "score": s})
+
             return redirect(url_for("leaderboard"))
 
-    return render_template("final_results.html", score=score, share_text=share_text)
+    # SEO data for results page
+    seo_title = "SightCr - See Your Virtual Travel Results & Share Your Score"
+    seo_description = "Check your scores in SightCr, the virtual travel game! Share your results, see how far your guesses were, and challenge friends to explore the world."
+    seo_keywords = "travel game results, geography quiz results, virtual travel score, SightCr leaderboard, explore world, online travel game"
+
+    return render_template(
+        "final_results.html",
+        score=score,
+        share_text=share_text,
+        seo_title=seo_title,
+        seo_description=seo_description,
+        seo_keywords=seo_keywords
+    )
 
 @app.route("/leaderboard")
 def leaderboard():
+    today = datetime.date.today().isoformat()
+    filename = f"leaderboard_{today}.csv"
     entries = []
-    if os.path.isfile("leaderboard.csv"):
-        with open("leaderboard.csv", newline="", encoding="utf-8") as f:
+
+    if os.path.isfile(filename):
+        with open(filename, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 entries.append({"email": row["email"], "score": int(row["score"])})
+
     entries.sort(key=lambda x: x["score"], reverse=True)
-    return render_template("leaderboard.html", entries=entries)
+
+    return render_template(
+        "leaderboard.html",
+        entries=entries,
+        seo_title="SightCr Leaderboard - See Top Global Explorers",
+        seo_description="View today's top scores in SightCr!",
+        seo_keywords="SightCr leaderboard, geography game scores"
+    )
+
 
 @app.route("/robots.txt")
 def robots_txt():

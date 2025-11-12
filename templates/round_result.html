@@ -149,7 +149,12 @@
         <div id="map"></div>
 
         <!-- Next Round Button -->
-        <a class="next-btn" href="{{ url_for('index') }}">Next Round</a>
+        {% if round >= 5 %}
+         <a href="{{ url_for('result') }}" class="btn btn-primary">See Final Results</a>
+        {% else %}
+         <a href="{{ url_for('index') }}" class="btn btn-secondary">Next Round</a>
+        {% endif %}
+
     </div>
 
     <!-- Google Maps API -->
