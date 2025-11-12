@@ -1,137 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ seo_title }}</title>
-    <meta name="description" content="{{ seo_description }}">
-    <meta name="keywords" content="{{ seo_keywords }}">
-    <meta name="robots" content="index, follow">
-
-    <meta property="og:title" content="GeoGuesser – Test Your Geography Skills!">
-    <meta property="og:description" content="Guess locations around the world and challenge yourself with GeoGuesser!">
-    <meta property="og:image" content="https://www.sightcr.com/share-image.png">
-    <meta property="og:url" content="https://www.sightcr.com">
-    <meta name="twitter:card" content="summary_large_image">
-
-
-
-
-<title>SightCR</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ seo_title }}</title>
+<meta name="description" content="{{ seo_description }}">
+<meta name="keywords" content="{{ seo_keywords }}">
 
 <style>
-/* Modal background */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    overflow: hidden; /* No scroll */
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main container that fills viewport */
+.main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Top content + map + button */
+    align-items: center;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 10px;
+}
+
+/* Street View and Map share space */
+#street-view, #map {
+    width: 90%;
+    max-width: 1200px;
+    border-radius: 12px;
+    flex: 1 1 0;
+    margin: 5px 0;
+}
+
+/* Submit button */
+#submit-btn {
+    padding: 14px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+    border: none;
+    background-color: #28a745;
+    color: white;
+    cursor: pointer;
+}
+#submit-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+#submit-btn:hover:enabled {
+    background-color: #218838;
+}
+
+/* Instructions modal */
 #instructionsModal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
 }
-
-/* Modal content */
 #instructionsContent {
-  background: white;
-  border-radius: 16px;
-  padding: 25px;
-  max-width: 400px;
-  width: 90%;
-  text-align: left;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
 }
-
-#instructionsContent h2 {
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-#instructionsContent ul {
-  padding-left: 20px;
-}
-
-#instructionsContent li {
-  margin-bottom: 10px;
-  line-height: 1.4;
-}
-
-#closeInstructions {
-  display: block;
-  margin: 20px auto 0;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  background-color: #28a745;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-#closeInstructions:hover {
-  background-color: #218838;
-}
-
-body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
-#street-view, #map { width: 90%; height: 40vh; margin: 20px auto; border-radius: 12px; }
-button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #28a745; color: white; cursor: pointer; }
-button:hover { background-color: #218838; }
-@media (max-width: 600px) { #street-view, #map { width: 95%; height: 35vh; } button { width: 90%; font-size: 14px; } }
 </style>
 </head>
 <body>
+
 <!-- Instructions Modal -->
-<div id="instructionsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-     background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:1000;">
-  <div style="background:white; padding:30px; border-radius:10px; max-width:500px; text-align:center;">
+<div id="instructionsModal">
+  <div id="instructionsContent">
     <h2>How to Play</h2>
     <p>Guess the location in Google Street View as close as possible. After 5 rounds, see your score and share results!</p>
-    <button id="gotItBtn" style="padding:10px 20px; font-size:16px;">Got it!</button>
+    <button id="gotItBtn">Got it!</button>
   </div>
 </div>
 
 <script>
-  // Show modal if the backend tells us to
-  const showInstructions = {{ 'true' if show_instructions else 'false' }};
-  const modal = document.getElementById('instructionsModal');
+const showInstructions = {{ 'true' if show_instructions else 'false' }};
+const modal = document.getElementById('instructionsModal');
 
-  if(showInstructions){
-      modal.style.display = 'flex';
-  }
+if(showInstructions){
+    modal.style.display = 'flex';
+}
 
-  document.getElementById('gotItBtn').addEventListener('click', () => {
-      // Mark instructions as shown in session
-      fetch('/instructions_shown', {method:'POST'})
-          .then(() => {
-              modal.style.display = 'none'; // hide modal
-          });
-  });
+document.getElementById('gotItBtn').addEventListener('click', () => {
+    fetch('/instructions_shown', {method:'POST'}).then(() => {
+        modal.style.display = 'none';
+    });
+});
 </script>
-<h1>🌍 Street View Guess</h1>
-<p>Round {{ round }} | Score: {{ score }}</p>
 
+<div class="main-container">
+    <div>
+        <h1>🌍 Street View Guess</h1>
+        <p>Round {{ round }} | Score: {{ score }}</p>
+    </div>
 
-<div id="street-view"></div>
-<div id="map"></div>
+    <div id="street-view"></div>
+    <div id="map"></div>
 
-<form method="POST" action="{{ url_for('guess') }}">
-    <input type="hidden" name="lat" id="guess-lat">
-    <input type="hidden" name="lon" id="guess-lon">
-    <button type="submit" id="submit-btn" disabled>Submit Guess</button>
-</form>
+    <form method="POST" action="{{ url_for('guess') }}">
+        <input type="hidden" name="lat" id="guess-lat">
+        <input type="hidden" name="lon" id="guess-lon">
+        <button type="submit" id="submit-btn" disabled>Submit Guess</button>
+    </form>
+</div>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
 <script>

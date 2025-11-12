@@ -7,35 +7,76 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-8WQ2J22B9Z');
 </script>
 <meta charset="utf-8">
 <title>Game Results</title>
 <style>
-body { font-family: Arial; text-align: center; background: #f4f4f4; padding:20px; }
-button { padding:12px 25px; margin-top:10px; font-size:16px; border-radius:6px; border:none; background-color:#007bff; color:white; cursor:pointer;}
-button:hover{background-color:#0056b3;}
-input[type="email"]{padding:10px; font-size:16px; width:250px; margin-top:10px;}
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f4f4f4;
+    padding: 20px;
+}
+button {
+    padding: 12px 25px;
+    margin-top: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+button:hover { background-color: #0056b3; }
+input[type="email"] {
+    padding: 10px;
+    font-size: 16px;
+    width: 250px;
+    margin-top: 10px;
+}
 
 /* Popup styling */
 #share-popup {
-    display:none;
+    display: none;
     position: fixed;
-    top:50%; left:50%;
-    transform: translate(-50%,-50%);
-    background:#fff; padding:20px; border-radius:12px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index:1000; width:300px;
+    z-index: 1000;
+    width: 320px;
 }
-#share-popup textarea { width:100%; height:120px; font-size:16px; text-align:center; margin-bottom:10px; }
+#share-popup textarea {
+    width: 100%;
+    height: 100px;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 10px;
+    resize: none;
+}
 #overlay {
-    display:none;
-    position:fixed; top:0; left:0; width:100%; height:100%;
+    display: none;
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
     background: rgba(0,0,0,0.5);
-    z-index:500;
+    z-index: 500;
 }
-.close-btn { background:#dc3545; margin-left:5px;}
+.close-btn {
+    background: #dc3545;
+    margin-left: 5px;
+}
+
+/* Inline copy message */
+#copy-message {
+    color: green;
+    margin-top: 10px;
+    display: none;
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -59,9 +100,12 @@ input[type="email"]{padding:10px; font-size:16px; width:250px; margin-top:10px;}
 <div id="share-popup">
     <button class="close-btn" onclick="closeShare()">X</button>
     <h3>Share your results</h3>
-    <textarea id="share-text" readonly>{{ share_text }}</textarea>
+    <textarea id="share-text" readonly>{{ share_text }}
+
+Play the game: https://sightcr.com</textarea>
     <br>
     <button onclick="copyShare()">Copy Results</button>
+    <p id="copy-message">✅ Results copied to clipboard!</p>
 </div>
 
 <script>
@@ -78,9 +122,18 @@ function closeShare() {
 function copyShare() {
     var copyText = document.getElementById("share-text");
     copyText.select();
-    copyText.setSelectionRange(0, 99999);
+    copyText.setSelectionRange(0, 99999); // for mobile devices
     document.execCommand("copy");
-    alert("Results copied to clipboard!");
+
+    // Show inline message
+    var msg = document.getElementById("copy-message");
+    msg.style.display = "block";
+
+    // Hide message and close popup after 1.5 seconds
+    setTimeout(function() {
+        msg.style.display = "none";
+        closeShare();
+    }, 1500);
 }
 </script>
 
