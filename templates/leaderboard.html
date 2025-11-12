@@ -1,88 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K0NCHYWJDB"></script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-8WQ2J22B9Z');
+  </script>
 
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
   <meta http-equiv="Content-Security-Policy"
-          content="script-src 'self' https://creator.expediagroup.com https://www.googletagmanager.com;">
+        content="script-src 'self' https://creator.expediagroup.com https://www.googletagmanager.com;">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo_title or "Leaderboard" }}</title>
+  <meta name="description" content="{{ seo_description }}">
+  <meta name="keywords" content="{{ seo_keywords }}">
+  <meta name="robots" content="index, follow">
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ seo_title }}</title>
-    <meta name="description" content="{{ seo_description }}">
-    <meta name="keywords" content="{{ seo_keywords }}">
-    <meta name="robots" content="index, follow">
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
 
-    <!-- Open Graph (Social Sharing) -->
-    <meta property="og:title" content="{{ seo_title }}">
-    <meta property="og:description" content="{{ seo_description }}">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
 
+    h1 {
+      color: #333;
+      margin-top: 1.5rem;
+      font-size: 2rem;
+    }
 
-    <title>Leaderboard</title>
-    <style>
-        body {
-            font-family: Arial;
-            text-align: center;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        table {
-            margin: 20px auto;
-            border-collapse: collapse;
-            width: 90%;
-            max-width: 600px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-        th {
-            background: #007bff;
-            color: white;
-        }
-        @media (max-width: 600px) {
-            table { width: 95%; }
-            th, td { font-size: 14px; padding: 8px; }
-        }
-        a { text-decoration: none; color: #007bff; }
-        a:hover { text-decoration: underline; }
-    </style>
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 12px 15px;
+      font-size: 1rem;
+    }
+
+    th {
+      background: #007bff;
+      color: white;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    tr.highlight {
+      background-color: #d4f1ff !important;
+      font-weight: bold;
+      box-shadow: inset 0 0 8px #00aaff;
+    }
+
+    tr:nth-child(even) { background-color: #fafafa; }
+
+    @media (max-width: 600px) {
+      th, td { font-size: 14px; padding: 8px; }
+      table { width: 95%; }
+    }
+
+    .btn-primary {
+      display: inline-block;
+      background-color: #007bff;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 20px;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    /* Expedia banner layout */
+    .eg-affiliate-banners {
+      margin: 40px auto;
+      display: block;
+      max-width: 600px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Leaderboard</h1>
-    <table>
-        <tr>
-            <th>Rank</th>
-            <th>Email</th>
-            <th>Score</th>
-        </tr>
-        {% for entry in entries %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ entry.email.split('@')[0] }}</td> <!-- only show before @ -->
-            <td>{{ entry.score }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <p><a href="{{ url_for('index') }}">Play Again</a></p>
+  <h1>Leaderboard</h1>
 
-  <!-- Game canvas -->
-  <canvas id="gameCanvas"></canvas>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+        <tr class="{% if entry.email == user_email %}highlight{% endif %}">
+          <td>{{ loop.index }}</td>
+          <td>{{ entry.email.split('@')[0] }}</td>
+          <td>{{ entry.score }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-  <!-- Banner below the canvas -->
+  <a href="{{ url_for('index') }}" class="btn-primary">Play Again</a>
+
+  <!-- Optional game canvas -->
+  <canvas id="gameCanvas" style="display:none;"></canvas>
+
+  <!-- Expedia Banner -->
   <div class="eg-affiliate-banners"
        data-program="us-expedia"
        data-network="pz"
@@ -94,10 +141,8 @@
        data-link="home">
   </div>
 
-<script class="eg-affiliate-banners-script" src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js"></script>
-
-
-
+  <script class="eg-affiliate-banners-script"
+          src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js">
+  </script>
 </body>
-
 </html>

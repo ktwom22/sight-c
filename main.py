@@ -160,6 +160,7 @@ def result():
     if request.method == "POST":
         email = request.form.get("email")
         if email:
+            session["email"] = email  # 👈 save their email for highlighting
             today = datetime.date.today().isoformat()
             filename = f"leaderboard_{today}.csv"
 
@@ -174,7 +175,7 @@ def result():
             # Only keep highest score
             entries[email] = max(entries.get(email, 0), score)
 
-            # Write back
+            # Write updated file
             with open(filename, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
@@ -202,6 +203,7 @@ def leaderboard():
     today = datetime.date.today().isoformat()
     filename = f"leaderboard_{today}.csv"
     entries = []
+    user_email = session.get("email")  # 👈 user's own email
 
     if os.path.isfile(filename):
         with open(filename, newline="", encoding="utf-8") as f:
@@ -211,13 +213,8 @@ def leaderboard():
 
     entries.sort(key=lambda x: x["score"], reverse=True)
 
-    return render_template(
-        "leaderboard.html",
-        entries=entries,
-        seo_title="SightCr Leaderboard - See Top Global Explorers",
-        seo_description="View today's top scores in SightCr!",
-        seo_keywords="SightCr leaderboard, geography game scores"
-    )
+    return render_template("leaderboard.html", entries=entries, user_email=user_email)
+
 
 
 @app.route("/robots.txt")

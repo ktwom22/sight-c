@@ -1,210 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-8WQ2J22B9Z');
+  </script>
 
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ seo_title }}</title>
-    <meta name="description" content="{{ seo_description }}">
-    <meta name="keywords" content="{{ seo_keywords }}">
-    <meta name="robots" content="index, follow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo_title or "Round Result" }}</title>
+  <meta name="description" content="{{ seo_description }}">
+  <meta name="keywords" content="{{ seo_keywords }}">
+  <meta name="robots" content="index, follow">
 
-    <!-- Open Graph (Social Sharing) -->
-    <meta property="og:title" content="{{ seo_title }}">
-    <meta property="og:description" content="{{ seo_description }}">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
+  <!-- Open Graph (Social Sharing) -->
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
 
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f4f6f8;
-            color: #333;
-        }
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      color: #333;
+    }
 
-        .container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
 
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
 
-        .scoreboard {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            text-align: center;
-            flex-wrap: wrap;
-        }
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      text-align: center;
+      flex-wrap: wrap;
+    }
 
-        .scorebox {
-            background: #ecf0f1;
-            padding: 15px 20px;
-            border-radius: 8px;
-            width: 30%;
-            margin: 5px 0;
-        }
+    .scorebox {
+      background: #ecf0f1;
+      padding: 15px 20px;
+      border-radius: 8px;
+      width: 30%;
+      margin: 5px 0;
+    }
 
-        .scorebox h2 {
-            margin: 0;
-            font-size: 18px;
-            color: #7f8c8d;
-        }
+    .scorebox h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #7f8c8d;
+    }
 
-        .scorebox p {
-            margin: 5px 0 0;
-            font-size: 22px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
+    .scorebox p {
+      margin: 5px 0 0;
+      font-size: 22px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
 
-        .distance-bar {
-            font-size: 24px;
-            text-align: center;
-            margin: 20px 0;
-        }
+    .distance-bar {
+      font-size: 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
 
-        #map {
-            width: 100%;
-            height: 450px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-        }
+    #map {
+      width: 100%;
+      height: 450px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      position: relative;
+    }
 
-        /* Next Round button */
-        .next-btn {
-            display: block;
-            width: 200px;
-            margin: 25px auto 0;
-            padding: 12px 0;
-            text-align: center;
-            background-color: #3498db;
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 8px;
-            transition: background 0.3s;
-        }
+    /* Map overlay button container */
+    .map-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
 
-        .next-btn:hover {
-            background-color: #2980b9;
-        }
+    .map-overlay a {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      text-decoration: none;
+      transition: 0.3s;
+    }
 
-        /* Mobile-specific button */
-        @media (max-width: 768px) {
-            .next-btn {
-                position: fixed;
-                bottom: 15px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 90%;
-                margin: 0;
-                z-index: 9999;
-                font-size: 18px;
-                padding: 15px 0;
-            }
-        }
-    </style>
+    .map-overlay .btn-next {
+      background: #3498db;
+    }
+
+    .map-overlay .btn-next:hover {
+      background: #2980b9;
+    }
+
+    .map-overlay .btn-final {
+      background: #2ecc71;
+    }
+
+    .map-overlay .btn-final:hover {
+      background: #27ae60;
+    }
+
+    @media (max-width: 768px) {
+      .map-overlay a {
+        font-size: 1rem;
+        padding: 12px 22px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Round {{ round }} Result</h1>
+  <div class="container">
+    <h1>Round {{ round }} Result</h1>
 
-        <div class="scoreboard">
-            <div class="scorebox">
-                <h2>Distance</h2>
-                <p>{{ result.distance_km }} km<br>({{ result.distance_mi }} mi)</p>
-            </div>
-            <div class="scorebox">
-                <h2>Round Score</h2>
-                <p>{{ result.round_score }}</p>
-            </div>
-            <div class="scorebox">
-                <h2>Total Score</h2>
-                <p>{{ score }}</p>
-            </div>
-        </div>
-
-        <div class="distance-bar">{{ result.bar }}</div>
-
-        <!-- Map -->
-        <div id="map"></div>
-
-        <!-- Next Round Button -->
-        {% if round >= 5 %}
-         <a href="{{ url_for('result') }}" class="btn btn-primary">See Final Results</a>
-        {% else %}
-         <a href="{{ url_for('index') }}" class="btn btn-secondary">Next Round</a>
-        {% endif %}
-
+    <div class="scoreboard">
+      <div class="scorebox">
+        <h2>Distance</h2>
+        <p>{{ result.distance_km }} km<br>({{ result.distance_mi }} mi)</p>
+      </div>
+      <div class="scorebox">
+        <h2>Round Score</h2>
+        <p>{{ result.round_score }}</p>
+      </div>
+      <div class="scorebox">
+        <h2>Total Score</h2>
+        <p>{{ score }}</p>
+      </div>
     </div>
 
-    <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
-    <script>
-        const guessedLat = {{ result.guessed_lat }};
-        const guessedLng = {{ result.guessed_lon }};
-        const actualLat = {{ result.actual_lat }};
-        const actualLng = {{ result.actual_lon }};
+    <div class="distance-bar">{{ result.bar }}</div>
 
-        // Initialize map
-        const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 4,
-            center: { lat: (guessedLat + actualLat)/2, lng: (guessedLng + actualLng)/2 }
-        });
+    <!-- Map -->
+    <div style="position: relative;">
+      <div id="map"></div>
 
-        // User's guess pin (blue)
-        const guessMarker = new google.maps.Marker({
-            position: { lat: guessedLat, lng: guessedLng },
-            map: map,
-            title: "Your Guess",
-            icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-        });
+      <div class="map-overlay">
+        {% if round >= 5 %}
+          <a href="{{ url_for('result') }}" class="btn-final">🏁 See Final Results</a>
+        {% else %}
+          <a href="{{ url_for('index') }}" class="btn-next">➡️ Next Round</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-        // Actual location pin (red)
-        const actualMarker = new google.maps.Marker({
-            position: { lat: actualLat, lng: actualLng },
-            map: map,
-            title: "Actual Location",
-            icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-        });
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+  <script>
+    const guessedLat = {{ result.guessed_lat }};
+    const guessedLng = {{ result.guessed_lon }};
+    const actualLat = {{ result.actual_lat }};
+    const actualLng = {{ result.actual_lon }};
 
-        // Line between guess and actual
-        const line = new google.maps.Polyline({
-            path: [
-                { lat: guessedLat, lng: guessedLng },
-                { lat: actualLat, lng: actualLng }
-            ],
-            geodesic: true,
-            strokeColor: "#e74c3c",
-            strokeOpacity: 1.0,
-            strokeWeight: 3,
-            map: map
-        });
+    const map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 4,
+      center: { lat: (guessedLat + actualLat) / 2, lng: (guessedLng + actualLng) / 2 }
+    });
 
-        // Fit map to show both markers
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend({lat: guessedLat, lng: guessedLng});
-        bounds.extend({lat: actualLat, lng: actualLng});
-        map.fitBounds(bounds);
-    </script>
+    const guessMarker = new google.maps.Marker({
+      position: { lat: guessedLat, lng: guessedLng },
+      map,
+      title: "Your Guess",
+      icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+    });
+
+    const actualMarker = new google.maps.Marker({
+      position: { lat: actualLat, lng: actualLng },
+      map,
+      title: "Actual Location",
+      icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+    });
+
+    const line = new google.maps.Polyline({
+      path: [
+        { lat: guessedLat, lng: guessedLng },
+        { lat: actualLat, lng: actualLng }
+      ],
+      geodesic: true,
+      strokeColor: "#e74c3c",
+      strokeOpacity: 1.0,
+      strokeWeight: 3,
+      map
+    });
+
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: guessedLat, lng: guessedLng });
+    bounds.extend({ lat: actualLat, lng: actualLng });
+    map.fitBounds(bounds);
+  </script>
 </body>
 </html>
