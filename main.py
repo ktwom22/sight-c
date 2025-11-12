@@ -10,6 +10,12 @@ GOOGLE_API_KEY = "AIzaSyAQI6vnKW5-8lH24bGygQ7eNhPM79677ps"
 with open("streetview_locations.json", "r", encoding="utf-8") as f:
     ALL_LOCATIONS = json.load(f)
 
+def get_daily_locations():
+    """Return 5 deterministic locations shared by all users for the day."""
+    today = datetime.date.today().isoformat()
+    random.seed(today)
+    return random.sample(ALL_LOCATIONS, 5)
+
 def haversine(lat1, lon1, lat2, lon2):
     """Distance in km between two lat/lon points"""
     R = 6371
