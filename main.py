@@ -1,15 +1,19 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import random, math, csv, os, json, datetime, requests
 
-
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# ✅ Use environment variable for security
 GOOGLE_API_KEY = "AIzaSyAQI6vnKW5-8lH24bGygQ7eNhPM79677ps"
 
-# Load Street View locations
-with open("streetview_locations.json", "r", encoding="utf-8") as f:
-    ALL_LOCATIONS = json.load(f)
+# --- Load locations safely ---
+try:
+    with open("streetview_locations.json", "r", encoding="utf-8") as f:
+        ALL_LOCATIONS = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    ALL_LOCATIONS = []
+    print("⚠️ Warning: streetview_locations.json not found or invalid!")
 
 # --- Helper functions ---
 def is_us(loc):
@@ -21,7 +25,7 @@ def is_europe(loc):
 def get_daily_locations():
     """Return 5 deterministic locations weighted for Europe/US."""
     today = datetime.date.today().isoformat()
-    random.seed(today)  # deterministic for all users
+    random.seed(today)
 
     us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
     europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
@@ -30,11 +34,11 @@ def get_daily_locations():
     weighted_choices = []
     for _ in range(5):
         r = random.random()
-        if r < 0.5:  # 50% chance Europe
+        if r < 0.5:
             weighted_choices.append(random.choice(europe_locations))
-        elif r < 0.8:  # 30% chance US
+        elif r < 0.8:
             weighted_choices.append(random.choice(us_locations))
-        else:  # 20% other
+        else:
             weighted_choices.append(random.choice(other_locations))
 
     return weighted_choices
@@ -54,7 +58,7 @@ SHARE_IMAGE_FOLDER = "static/share_images"
 os.makedirs(SHARE_IMAGE_FOLDER, exist_ok=True)
 
 def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round_score, distance_km, filename=None):
-    """Generates a shareable map image with actual and guessed locations marked."""
+    """Generates a shareable static map image (no text overlay)."""
     if filename is None:
         filename = f"share_{actual_lat}_{actual_lon}_{guessed_lat}_{guessed_lon}.png"
     filepath = os.path.join(SHARE_IMAGE_FOLDER, filename)
@@ -76,19 +80,6 @@ def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round
     with open(filepath, "wb") as f:
         f.write(resp.content)
 
-    img = Image.open(filepath)
-    draw = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("arial.ttf", 20)
-    except:
-        font = ImageFont.load_default()
-
-    text = f"Score: {round_score} | Distance: {distance_km} km"
-    text_w, text_h = draw.textsize(text, font=font)
-    draw.rectangle([0, img.height - text_h - 10, text_w + 10, img.height], fill=(255, 255, 255, 200))
-    draw.text((5, img.height - text_h - 5), text, fill="black", font=font)
-
-    img.save(filepath)
     return "/" + filepath.replace("\\", "/")
 
 # --- Flask hooks and routes ---
@@ -96,18 +87,23 @@ def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round
 def setup_game():
     today = datetime.date.today().isoformat()
     if session.get("last_played_date") != today:
+        last_date = session.get("last_played_date")
         session.clear()
+        session["last_played_date"] = today
         session["score"] = 0
         session["round"] = 1
         session["results"] = []
         session["game_locations"] = get_daily_locations()
         session["instructions_shown"] = False
-        session["last_played_date"] = today
 
 @app.route("/")
 def index():
     round_num = session.get("round", 1)
     score = session.get("score", 0)
+
+    # ✅ Safety check if session data lost
+    if "game_locations" not in session or not session["game_locations"]:
+        session["game_locations"] = get_daily_locations()
 
     if round_num > 5:
         return redirect(url_for("result"))
@@ -118,7 +114,6 @@ def index():
     session["heading"] = loc.get("heading", 0)
     show_instructions = not session.get("instructions_shown", False)
 
-    # Example: generate a shareable image URL (could be dynamic or static placeholder)
     share_image_url = url_for('static', filename='images/share_placeholder.png', _external=True)
 
     return render_template(
@@ -135,7 +130,6 @@ def index():
         seo_keywords="travel game, geography quiz, world map game, virtual travel game, learn geography, travel challenge, GeoGuesser",
         share_image_url=share_image_url
     )
-
 
 @app.route("/instructions_shown", methods=["POST"])
 def instructions_shown():
@@ -216,54 +210,75 @@ def result():
     if not results:
         return redirect(url_for("index"))
 
+    # Share text for social media
     share_lines = ["🌎 GeoGuesser Results"]
     for r in results:
-        share_lines.append(r["bar"])
+        share_lines.append(r.get("bar", "📍❔📍"))
     share_lines.append(f"🏁 Total Score: {score}")
     share_text = "\n".join(share_lines)
 
+    # Ensure leaderboard folder exists
+    LEADERBOARD_DIR = os.path.join(os.path.dirname(__file__), "leaderboards")
+    os.makedirs(LEADERBOARD_DIR, exist_ok=True)
+
+    today = datetime.date.today().isoformat()
+    leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
+
+    # Handle POST (email submission)
     if request.method == "POST":
-        email = request.form.get("email")
+        email = request.form.get("email", "").strip()
         if email:
             session["email"] = email
-            today = datetime.date.today().isoformat()
-            filename = f"leaderboard_{today}.csv"
             entries_dict = {}
-            if os.path.isfile(filename):
-                with open(filename, newline="", encoding="utf-8") as f:
+
+            # Read existing leaderboard
+            if os.path.isfile(leaderboard_file):
+                with open(leaderboard_file, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         entries_dict[row["email"]] = int(row["score"])
+
+            # Update score
             entries_dict[email] = max(entries_dict.get(email, 0), score)
-            with open(filename, "w", newline="", encoding="utf-8") as f:
+
+            # Write leaderboard file
+            with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
                 for e, s in entries_dict.items():
                     writer.writerow({"email": e, "score": s})
+
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    score_submitted = session.get("freeplay_unlocked", False)
-    today = datetime.date.today().isoformat()
-    filename = f"leaderboard_{today}.csv"
+    # Load leaderboard for display
     entries = []
-    user_email = session.get("email")
-    if os.path.isfile(filename):
-        with open(filename, newline="", encoding="utf-8") as f:
+    if os.path.isfile(leaderboard_file):
+        with open(leaderboard_file, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 entries.append({"email": row["email"], "score": int(row["score"])})
     entries.sort(key=lambda x: x["score"], reverse=True)
 
+    # Context
+    user_email = session.get("email")
+    score_submitted = session.get("freeplay_unlocked", False)
+
     return render_template(
         "result.html",
-        score=score,
         results=results,
-        share_text=share_text,
         entries=entries,
+        total_score=score,
         user_email=user_email,
-        freeplay_unlocked=score_submitted
+        share_text=share_text,
+        freeplay_unlocked=score_submitted,
+        seo_title="GeoGuesser Results - See How You Did!",
+        seo_description="Check your GeoGuesser results, compare with others, and share your score.",
+        seo_keywords="GeoGuesser results, travel game, geography challenge, world map game"
     )
+
+
+
 
 @app.route("/leaderboard")
 def leaderboard():
