@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import random, math, csv, os, json, datetime, requests
-from PIL import Image, ImageDraw, ImageFont
+
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
