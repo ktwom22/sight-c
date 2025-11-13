@@ -1,148 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-8WQ2J22B9Z');
-  </script>
-
-  <meta http-equiv="Content-Security-Policy"
-        content="script-src 'self' https://creator.expediagroup.com https://www.googletagmanager.com;">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ seo_title or "Leaderboard" }}</title>
-  <meta name="description" content="{{ seo_description }}">
-  <meta name="keywords" content="{{ seo_keywords }}">
-  <meta name="robots" content="index, follow">
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="{{ seo_title }}">
-  <meta property="og:description" content="{{ seo_description }}">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="{{ request.url }}">
-  <meta property="og:image" content="{{ url_for('static', filename='images/geo-thumbnail.png', _external=True) }}">
-
+  <meta charset="utf-8">
+  <title>🏆 SightCr Leaderboard</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      text-align: center;
+      font-family: Arial, sans-serif;
       background: #f4f4f4;
+      text-align: center;
       margin: 0;
-      padding: 0;
+      padding: 20px;
     }
-
     h1 {
-      color: #333;
-      margin-top: 1.5rem;
-      font-size: 2rem;
+      margin-bottom: 10px;
     }
-
     table {
+      width: 100%;
+      max-width: 500px;
       margin: 20px auto;
       border-collapse: collapse;
-      width: 90%;
-      max-width: 600px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      background: #fff;
-      border-radius: 12px;
+      background: white;
+      border-radius: 10px;
       overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-
     th, td {
-      border-bottom: 1px solid #eee;
-      padding: 12px 15px;
-      font-size: 1rem;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
     }
-
     th {
       background: #007bff;
       color: white;
-      text-transform: uppercase;
-      font-size: 0.9rem;
     }
-
     tr.highlight {
-      background-color: #d4f1ff !important;
+      background: #d1ecf1;
       font-weight: bold;
-      box-shadow: inset 0 0 8px #00aaff;
     }
 
-    tr:nth-child(even) { background-color: #fafafa; }
-
-    @media (max-width: 600px) {
-      th, td { font-size: 14px; padding: 8px; }
-      table { width: 95%; }
+    /* Free Play section */
+    .freeplay-box {
+      margin-top: 30px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-
-    .btn-primary {
-      display: inline-block;
-      background-color: #007bff;
+    .freeplay-box h2 {
+      color: #28a745;
+    }
+    .freeplay-btn {
+      background-color: #28a745;
+      border: none;
       color: white;
       padding: 12px 25px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      margin-top: 20px;
-      transition: background-color 0.3s ease;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .freeplay-btn:hover {
+      background-color: #218838;
     }
 
-    .btn-primary:hover {
-      background-color: #0056b3;
-    }
-
-    /* Expedia banner layout */
-    .eg-affiliate-banners {
-      margin: 40px auto;
-      display: block;
-      max-width: 600px;
+    @media (max-width: 600px) {
+      table, .freeplay-box {
+        width: 95%;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Leaderboard</h1>
+
+  <h1>🏆 Daily Leaderboard</h1>
+  <p>See how your score compares to other players!</p>
 
   <table>
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Player</th>
-        <th>Score</th>
+    <tr><th>Email</th><th>Score</th></tr>
+    {% for e in entries %}
+      <tr {% if e.email == user_email %}class="highlight"{% endif %}>
+        <td>{{ e.email }}</td>
+        <td>{{ e.score }}</td>
       </tr>
-    </thead>
-    <tbody>
-      {% for entry in entries %}
-        <tr class="{% if entry.email == user_email %}highlight{% endif %}">
-          <td>{{ loop.index }}</td>
-          <td>{{ entry.email.split('@')[0] }}</td>
-          <td>{{ entry.score }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
+    {% endfor %}
   </table>
 
-  <a href="{{ url_for('index') }}" class="btn-primary">Play Again</a>
-
-  <!-- Optional game canvas -->
-  <canvas id="gameCanvas" style="display:none;"></canvas>
-
-  <!-- Expedia Banner -->
-  <div class="eg-affiliate-banners"
-       data-program="us-expedia"
-       data-network="pz"
-       data-layout="medium-rectangle"
-       data-image="adventure"
-       data-message="find-perfect-getaway-package"
-       data-camref="1100l5uUXS"
-       data-pubref=""
-       data-link="home">
+  <!-- Free Play Unlocked Section -->
+  <div class="freeplay-box">
+    <h2>🌍 Free Play Unlocked!</h2>
+    <p>Explore random locations from around the world — no leaderboard, just fun.</p>
+    <button class="freeplay-btn" onclick="window.location.href='/freeplay'">
+      🎮 Start Free Play
+    </button>
   </div>
 
-  <script class="eg-affiliate-banners-script"
-          src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js">
-  </script>
 </body>
 </html>

@@ -1,154 +1,234 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K0NCHYWJDB"></script>
-  <meta http-equiv="Content-Security-Policy"
-          content="script-src 'self' https://creator.expediagroup.com https://www.googletagmanager.com;">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <meta charset="utf-8">
+  <title>🎯 SightCr Results</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
 
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
+    h1 { font-size: 1.8em; margin-bottom: 15px; }
+    h2 { font-size: 1.1em; margin: 15px 0 8px; color: #555; }
 
-<meta charset="utf-8">
-<title>Round {{ round }} Result</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f4f4f4;
-  margin:0;
-  padding:0;
-}
-#map {
-  width: 90%;
-  height: 50vh;
-  margin: 20px auto;
-  border-radius: 12px;
-}
-button {
-  padding: 12px 25px;
-  font-size: 16px;
-  margin-top: 10px;
-  border-radius: 6px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-}
-button:hover { background-color: #0056b3; }
-.result-line {
-  font-size: 22px;
-  margin: 15px 0;
-}
-.summary {
-  font-size: 18px;
-  margin-top: 10px;
-}
-@media (max-width: 600px) {
-  #map { width: 95%; height: 35vh; }
-  button { width: 90%; font-size: 14px; }
-}
-</style>
+    .result-box {
+      background: #fff;
+      max-width: 400px;
+      margin: 0 auto 20px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .score { font-size: 1.5em; font-weight: 600; margin-bottom: 12px; }
+    .round-bars { font-size: 1.3em; margin-bottom: 10px; line-height: 1.5; }
+    .note { font-size: 0.85em; color: #777; margin-bottom: 12px; }
+
+    .copy-btn, .submit-btn, .freeplay-btn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 0.95em;
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+    }
+
+    .copy-btn { background: #3498db; color: #fff; }
+    .copy-btn:hover { background: #2980b9; }
+
+    .submit-btn { background: #1abc9c; color: #fff; }
+    .submit-btn:hover { background: #16a085; }
+
+    .freeplay-btn { background: #27ae60; color: #fff; }
+    .freeplay-btn:hover { background: #1e8449; }
+
+    input[type="email"] {
+      padding: 6px;
+      width: 65%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.95em;
+    }
+
+    /* Podium icon */
+    #leaderboard-icon {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      cursor: pointer;
+      z-index: 1000;
+      font-size: 2em;
+    }
+
+    /* Leaderboard modal */
+    #leaderboard-modal {
+      display: none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #leaderboard-modal .modal-content {
+      background:#fff;
+      padding:20px;
+      border-radius:12px;
+      max-width:350px;
+      width:90%;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      position: relative;
+    }
+
+    #leaderboard-modal table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    #leaderboard-modal th, #leaderboard-modal td {
+      padding: 6px 8px;
+      font-size: 0.9em;
+    }
+    #leaderboard-modal th {
+      background: #3498db;
+      color: #fff;
+      border-radius: 6px;
+    }
+    #leaderboard-modal tr.highlight { background: #d1f2eb; font-weight: 600; }
+
+    #leaderboard-modal button {
+      margin-top: 15px;
+      padding: 6px 12px;
+      border: none;
+      background: #3498db;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .prompt { font-size: 0.9em; color: #555; margin-top: 8px; }
+
+    /* Expedia banner spacing */
+    .eg-affiliate-banners { margin-top: 15px; display: flex; justify-content: center; }
+  </style>
 </head>
 <body>
-<h1>Round {{ round }} Result</h1>
 
-<!-- 🧭 Distance + Score Summary -->
-<p class="summary">
-  You were <strong>{{ distance_km }} km</strong> ({{ distance_mi }} mi) away!<br>
-  Round Score: <strong>{{ round_score }}</strong> | Total Score: <strong>{{ score }}</strong>
-</p>
+  <h1>🏁 Your Results</h1>
 
-<!-- 🗺️ Emoji Visual Line -->
-<div class="result-line">
-  {% if distance_km < 1 %}
-    📍📍 Perfect! ({{ distance_km }} km)
-  {% elif distance_km < 10 %}
-    📍🟩📍 Very Close ({{ distance_km }} km)
-  {% elif distance_km < 100 %}
-    📍🟨📍 Close ({{ distance_km }} km)
-  {% elif distance_km < 500 %}
-    📍🟧📍 Far ({{ distance_km }} km)
-  {% else %}
-    📍🟥📍 Way Off ({{ distance_km }} km)
-  {% endif %}
-</div>
+  <!-- Podium icon -->
+  <div id="leaderboard-icon" title="Top Players" onclick="openLeaderboard()">🏆</div>
 
-<div id="map"></div>
+  <div class="result-box">
+    <div class="score">Total Score: {{ score }}</div>
 
-<form action="{{ url_for('next_round') }}">
-  <button type="submit">Next Round</button>
-</form>
+    <div class="round-bars">
+      {% for r in results %}
+        {{ r.bar }}<br>
+      {% endfor %}
+    </div>
 
-  <!-- Game canvas -->
-  <canvas id="gameCanvas"></canvas>
+    <div class="note">Distance bars show how close your guesses were each round.</div>
 
-  <!-- Banner below the canvas -->
-  <div class="eg-affiliate-banners"
-       data-program="us-expedia"
-       data-network="pz"
-       data-layout="medium-rectangle"
-       data-image="adventure"
-       data-message="find-perfect-getaway-package"
-       data-camref="1100l5uUXS"
-       data-pubref=""
-       data-link="home">
+    <button class="copy-btn" onclick="copyShare()">📋 Copy Results</button>
+
+    <div id="action-section">
+      {% if not user_email %}
+        <div class="prompt">Want to unlock Free Play? Submit your score!</div>
+        <div id="email-form">
+          <input type="email" id="email-input" placeholder="Enter your email" required>
+          <button class="submit-btn" onclick="submitEmail()">Submit</button>
+        </div>
+      {% elif freeplay_unlocked %}
+        <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
+      {% endif %}
+    </div>
+
+    <!-- Expedia Affiliate Banner -->
+    <div class="eg-affiliate-banners"
+         data-program="us-expedia"
+         data-network="pz"
+         data-layout="medium-rectangle"
+         data-image="adventure"
+         data-message="bye-bye-bucket-list-hello-adventure"
+         data-camref="1100l5uUXS"
+         data-pubref=""
+         data-link="home">
+    </div>
+    <script class="eg-affiliate-banners-script"
+            src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js">
+    </script>
   </div>
 
-<script class="eg-affiliate-banners-script" src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js"></script>
+  <textarea id="share-text" style="display:none;">
+🌎 GeoGuesser Results
+{% for r in results %}
+{{ r.bar }}
+{% endfor %}
+🏁 Total Score: {{ score }}
+  </textarea>
 
+  <!-- Leaderboard Modal -->
+  <div id="leaderboard-modal">
+    <div class="modal-content">
+      <h2>🏆 Top Players</h2>
+      <table>
+        <tr><th>Email</th><th>Score</th></tr>
+        {% for e in entries[:5] %}
+          <tr {% if e.email == user_email %}class="highlight"{% endif %}>
+            <td>{{ e.email }}</td>
+            <td>{{ e.score }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+      <button onclick="closeLeaderboard()">Close</button>
+    </div>
+  </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
-<script>
-var guessedLat = {{ guessed_lat }};
-var guessedLng = {{ guessed_lon }};
-var actualLat = {{ actual_lat }};
-var actualLng = {{ actual_lon }};
-var centerLat = (guessedLat + actualLat)/2;
-var centerLng = (guessedLng + actualLng)/2;
+  <script>
+    function copyShare() {
+      const shareText = document.getElementById('share-text').value;
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert("✅ Results copied to clipboard!");
+      }).catch(() => { alert("❌ Could not copy results."); });
+    }
 
-var map = new google.maps.Map(document.getElementById('map'), {
-    center: {lat: centerLat, lng: centerLng},
-    zoom: 2
-});
+    function submitEmail() {
+      const email = document.getElementById('email-input').value.trim();
+      if (!email) return alert("Please enter an email.");
+      fetch("{{ url_for('result') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `email=${encodeURIComponent(email)}`
+      })
+      .then(res => {
+        if (res.ok) {
+          document.getElementById('action-section').innerHTML = `
+            <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
+          `;
+          alert("✅ Email submitted! Free Play unlocked.");
+        } else { alert("❌ Error submitting email."); }
+      });
+    }
 
-var guessMarker = new google.maps.Marker({
-    position:{lat: guessedLat, lng: guessedLng},
-    map: map,
-    title:"Your Guess",
-    icon:"http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-});
+    function openLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'flex'; }
+    function closeLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'none'; }
 
-var actualMarker = new google.maps.Marker({
-    position:{lat: actualLat, lng: actualLng},
-    map: map,
-    title:"Actual Location",
-    icon:"http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-});
-
-var line = new google.maps.Polyline({
-    path:[{lat: guessedLat, lng: guessedLng},{lat: actualLat, lng: actualLng}],
-    geodesic: true,
-    strokeColor:'#FF0000',
-    strokeOpacity:0.8,
-    strokeWeight:3,
-    map: map
-});
-
-var bounds = new google.maps.LatLngBounds();
-bounds.extend(new google.maps.LatLng(guessedLat, guessedLng));
-bounds.extend(new google.maps.LatLng(actualLat, actualLng));
-map.fitBounds(bounds);
-
-
-</script>
-
+    window.onclick = function(event) {
+      const modal = document.getElementById('leaderboard-modal');
+      if (event.target == modal) modal.style.display = 'none';
+    }
+  </script>
 
 </body>
 </html>

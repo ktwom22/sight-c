@@ -17,7 +17,7 @@
   <meta name="keywords" content="{{ seo_keywords }}">
   <meta name="robots" content="index, follow">
 
-  <!-- Open Graph (Social Sharing) -->
+  <!-- Open Graph -->
   <meta property="og:title" content="{{ seo_title }}">
   <meta property="og:description" content="{{ seo_description }}">
   <meta property="og:type" content="website">
@@ -35,7 +35,7 @@
 
     .container {
       max-width: 900px;
-      margin: 30px auto;
+      margin: 20px auto;
       padding: 20px;
       background: #fff;
       border-radius: 10px;
@@ -49,29 +49,29 @@
 
     .scoreboard {
       display: flex;
-      justify-content: space-around;
-      margin: 20px 0;
+      justify-content: space-between;
       text-align: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      margin: 20px 0;
     }
 
     .scorebox {
       background: #ecf0f1;
-      padding: 15px 20px;
+      padding: 12px 15px;
       border-radius: 8px;
-      width: 30%;
-      margin: 5px 0;
+      flex: 1;
+      margin: 0 5px;
     }
 
     .scorebox h2 {
       margin: 0;
-      font-size: 18px;
+      font-size: 16px;
       color: #7f8c8d;
     }
 
     .scorebox p {
       margin: 5px 0 0;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: bold;
       color: #2c3e50;
     }
@@ -79,21 +79,21 @@
     .distance-bar {
       font-size: 24px;
       text-align: center;
-      margin: 20px 0;
+      margin: 15px 0;
     }
 
     #map {
       width: 100%;
-      height: 450px;
+      height: 350px;
       border-radius: 10px;
       border: 1px solid #ccc;
+      margin-bottom: 15px;
       position: relative;
     }
 
-    /* Map overlay button container */
     .map-overlay {
       position: absolute;
-      bottom: 20px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
@@ -101,47 +101,39 @@
 
     .map-overlay a {
       display: inline-block;
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 1.2rem;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-size: 1.1rem;
       font-weight: bold;
       color: #fff;
       text-decoration: none;
       transition: 0.3s;
     }
 
-    .map-overlay .btn-next {
-      background: #3498db;
-    }
-
-    .map-overlay .btn-next:hover {
-      background: #2980b9;
-    }
-
-    .map-overlay .btn-final {
-      background: #2ecc71;
-    }
-
-    .map-overlay .btn-final:hover {
-      background: #27ae60;
-    }
+    .map-overlay .btn-next { background: #3498db; }
+    .map-overlay .btn-next:hover { background: #2980b9; }
+    .map-overlay .btn-final { background: #2ecc71; }
+    .map-overlay .btn-final:hover { background: #27ae60; }
 
     @media (max-width: 768px) {
-      .map-overlay a {
-        font-size: 1rem;
-        padding: 12px 22px;
-      }
+      .map-overlay a { font-size: 0.95rem; padding: 10px 18px; }
+      .scorebox p { font-size: 16px; }
     }
+
+    /* Expedia Banner */
+    .expedia-banner { margin: 15px 0; text-align: center; }
   </style>
 </head>
 <body>
+
   <div class="container">
     <h1>Round {{ round }} Result</h1>
 
+    <!-- One-line scoreboard -->
     <div class="scoreboard">
       <div class="scorebox">
         <h2>Distance</h2>
-        <p>{{ result.distance_km }} km<br>({{ result.distance_mi }} mi)</p>
+        <p>{{ result.distance_km }} km ({{ result.distance_mi }} mi)</p>
       </div>
       <div class="scorebox">
         <h2>Round Score</h2>
@@ -153,12 +145,27 @@
       </div>
     </div>
 
+    <!-- Distance bar -->
     <div class="distance-bar">{{ result.bar }}</div>
 
-    <!-- Map -->
+    <!-- Expedia Banner BELOW distance bar and ABOVE map -->
+    <div class="expedia-banner">
+      <div class="eg-affiliate-banners"
+           data-program="us-expedia"
+           data-network="pz"
+           data-layout="leaderboard"
+           data-image="adventure"
+           data-message="explore-world-travel"
+           data-camref="1100l5uUXS"
+           data-pubref=""
+           data-link="home">
+      </div>
+      <script class="eg-affiliate-banners-script" src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js"></script>
+    </div>
+
+    <!-- Google Map -->
     <div style="position: relative;">
       <div id="map"></div>
-
       <div class="map-overlay">
         {% if round >= 5 %}
           <a href="{{ url_for('result') }}" class="btn-final">🏁 See Final Results</a>

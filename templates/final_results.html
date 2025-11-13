@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
 <meta charset="utf-8">
 <title>Game Results</title>
 <style>
@@ -18,38 +10,47 @@ body {
     background: #f4f4f4;
     padding: 20px;
 }
+h1 {
+    margin-bottom: 20px;
+}
+.container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+.share-box, .freeplay-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    min-width: 250px;
+    max-width: 320px;
+}
 button {
     padding: 12px 25px;
     margin-top: 10px;
     font-size: 16px;
     border-radius: 6px;
     border: none;
-    background-color: #007bff;
-    color: white;
     cursor: pointer;
 }
-button:hover { background-color: #0056b3; }
-input[type="email"] {
-    padding: 10px;
-    font-size: 16px;
-    width: 250px;
-    margin-top: 10px;
+.share-btn {
+    background-color: #007bff;
+    color: white;
 }
-
-/* Popup styling */
-#share-popup {
-    display: none;
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index: 1000;
-    width: 320px;
+.share-btn:hover {
+    background-color: #0056b3;
 }
-#share-popup textarea {
+.freeplay-btn {
+    background-color: #28a745;
+    color: white;
+}
+.freeplay-btn:hover {
+    background-color: #218838;
+}
+#share-text {
     width: 100%;
     height: 100px;
     font-size: 16px;
@@ -57,25 +58,17 @@ input[type="email"] {
     margin-bottom: 10px;
     resize: none;
 }
-#overlay {
-    display: none;
-    position: fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 500;
-}
-.close-btn {
-    background: #dc3545;
-    margin-left: 5px;
-}
-
-/* Inline copy message */
 #copy-message {
     color: green;
+    font-weight: bold;
     margin-top: 10px;
     display: none;
-    font-weight: bold;
+}
+@media (max-width: 700px) {
+    .container {
+        flex-direction: column;
+        align-items: center;
+    }
 }
 </style>
 </head>
@@ -84,55 +77,39 @@ input[type="email"] {
 <h1>🏁 Game Complete!</h1>
 <p>Total Score: <strong>{{ score }}</strong></p>
 
-<button onclick="openShare()">Share Results</button>
-
-<form method="POST">
-    <h3>Enter your email for leaderboard:</h3>
-    <input type="email" name="email" placeholder="Your email" required>
-    <br>
-    <button type="submit">Submit Score</button>
-</form>
-
-<!-- Overlay -->
-<div id="overlay"></div>
-
-<!-- Share popup -->
-<div id="share-popup">
-    <button class="close-btn" onclick="closeShare()">X</button>
-    <h3>Share your results</h3>
-    <textarea id="share-text" readonly>{{ share_text }}
+<div class="container">
+    <!-- Share Results -->
+    <div class="share-box">
+        <h3>Share Your Results</h3>
+        <textarea id="share-text" readonly>{{ share_text }}
 
 Play the game: https://sightcr.com</textarea>
-    <br>
-    <button onclick="copyShare()">Copy Results</button>
-    <p id="copy-message">✅ Results copied to clipboard!</p>
+        <br>
+        <button class="share-btn" onclick="copyShare()">Copy Results</button>
+        <p id="copy-message">✅ Results copied to clipboard!</p>
+    </div>
+
+    <!-- Free Play -->
+    <div class="freeplay-box">
+        <h3>🌍 Free Play Unlocked!</h3>
+        <p>Explore random locations around the world — no leaderboard, no limits.</p>
+        <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🎮 Start Free Play</button>
+    </div>
 </div>
 
 <script>
-function openShare() {
-    document.getElementById("share-popup").style.display = "block";
-    document.getElementById("overlay").style.display = "block";
-}
-
-function closeShare() {
-    document.getElementById("share-popup").style.display = "none";
-    document.getElementById("overlay").style.display = "none";
-}
-
 function copyShare() {
     var copyText = document.getElementById("share-text");
     copyText.select();
-    copyText.setSelectionRange(0, 99999); // for mobile devices
+    copyText.setSelectionRange(0, 99999);
     document.execCommand("copy");
 
     // Show inline message
     var msg = document.getElementById("copy-message");
     msg.style.display = "block";
 
-    // Hide message and close popup after 1.5 seconds
     setTimeout(function() {
         msg.style.display = "none";
-        closeShare();
     }, 1500);
 }
 </script>

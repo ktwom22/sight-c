@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Free Play - SightCR</title>
+<style>
+body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+#street-view, #map { width: 90%; height: 45vh; margin: 20px auto; border-radius: 12px; }
+button { padding: 12px 25px; font-size: 16px; margin-top: 10px; border-radius: 6px; border: none; background-color: #28a745; color: white; cursor: pointer; }
+button:hover { background-color: #218838; }
+@media (max-width: 600px) { #street-view, #map { width: 95%; height: 40vh; } button { width: 90%; font-size: 14px; } }
+</style>
+</head>
+<body>
+
+<h1>🌍 Free Play Mode</h1>
+<p>Explore the world freely — no score, no leaderboard!</p>
+
+
+<div id="street-view"></div>
+<div id="map"></div>
+
+<button onclick="nextLocation()">Next Random Location</button>
+<br><br>
+<a href="/" style="color:#007bff;">Back to Daily Game</a>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}"></script>
+<script>
+let panorama, map, guessMarker;
+
+function initGame(lat, lon, heading) {
+    panorama = new google.maps.StreetViewPanorama(document.getElementById('street-view'), {
+        position: {lat: lat, lng: lon},
+        pov: {heading: heading, pitch: 0},
+        zoom: 1,
+        motionTracking: false,
+        addressControl: false,
+        fullscreenControl: false,
+        linksControl: false
+    });
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 0, lng: 0},
+        zoom: 2
+    });
+
+    map.addListener('click', function(event) {
+        if (guessMarker) guessMarker.setMap(null);
+        guessMarker = new google.maps.Marker({ position: event.latLng, map: map });
+    });
+}
+
+function nextLocation() {
+    fetch('/freeplay')  // reloads the route to get a new random location
+        .then(response => response.text())
+        .then(html => {
+            document.open();
+            document.write(html);
+            document.close();
+        });
+}
+
+initGame({{ lat }}, {{ lon }}, {{ heading }});
+</script>
+
+</body>
+</html>

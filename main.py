@@ -6,9 +6,10 @@ app.secret_key = "supersecretkey"
 
 GOOGLE_API_KEY = "AIzaSyAQI6vnKW5-8lH24bGygQ7eNhPM79677ps"
 
-# Load Street View locations from JSON
+# Load Street View locations
 with open("streetview_locations.json", "r", encoding="utf-8") as f:
     ALL_LOCATIONS = json.load(f)
+
 
 def get_daily_locations():
     """Return 5 deterministic locations shared by all users for the day."""
@@ -16,15 +17,17 @@ def get_daily_locations():
     random.seed(today)
     return random.sample(ALL_LOCATIONS, 5)
 
+
 def haversine(lat1, lon1, lat2, lon2):
     """Distance in km between two lat/lon points"""
     R = 6371
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
+
 
 @app.before_request
 def setup_game():
@@ -34,9 +37,10 @@ def setup_game():
         session["score"] = 0
         session["round"] = 1
         session["results"] = []
-        session["game_locations"] = get_daily_locations()  # shared for everyone
+        session["game_locations"] = get_daily_locations()
         session["instructions_shown"] = False
         session["last_played_date"] = today
+
 
 @app.route("/")
 def index():
@@ -52,7 +56,6 @@ def index():
     session["heading"] = loc.get("heading", 0)
     show_instructions = not session.get("instructions_shown", False)
 
-    # SEO data
     seo_title = "GeoGuesser - Play the Ultimate Travel Quiz Game"
     seo_description = "Guess locations around the world and test your geography skills with GeoGuesser. Travel virtually and challenge yourself!"
     seo_keywords = "travel game, geography quiz, world map game, virtual travel game, learn geography, travel challenge, GeoGuesser"
@@ -77,6 +80,7 @@ def instructions_shown():
     session["instructions_shown"] = True
     return "", 204
 
+
 @app.route("/guess", methods=["POST"])
 def guess():
     guessed_lat = float(request.form.get("lat"))
@@ -86,7 +90,7 @@ def guess():
     round_num = session.get("round", 1)
     score = session.get("score", 0)
 
-    # Calculate distance & score
+    # Distance & score
     distance_km = round(haversine(actual_lat, actual_lon, guessed_lat, guessed_lon), 1)
     round_score = max(0, int(1000 - distance_km))
     score += round_score
@@ -110,7 +114,7 @@ def guess():
         "distance_mi": round(distance_km * 0.621371, 1),
         "round_score": round_score,
         "guessed_lat": guessed_lat,
-        "guessed_lon": float(request.form.get("lon")),
+        "guessed_lon": guessed_lon,
         "actual_lat": actual_lat,
         "actual_lon": actual_lon
     })
@@ -118,11 +122,8 @@ def guess():
     session["score"] = score
     session["round"] = round_num + 1
 
-    # Redirect to round result page
-    if round_num >= 5:
-        return redirect(url_for("round_result"))  # Last round, go to final results
-    else:
-        return redirect(url_for("round_result"))  # Show round result first
+    return redirect(url_for("round_result"))
+
 
 @app.route("/round_result")
 def round_result():
@@ -137,9 +138,8 @@ def round_result():
         result=last_result,
         score=score,
         round=round_num,
-        api_key=GOOGLE_API_KEY  # make sure this is passed
+        api_key=GOOGLE_API_KEY
     )
-
 
 
 @app.route("/result", methods=["GET", "POST"])
@@ -150,60 +150,73 @@ def result():
     if not results:
         return redirect(url_for("index"))
 
-    # Build simplified share text (emoji bars + total score)
     share_lines = ["🌎 GeoGuesser Results"]
     for r in results:
         share_lines.append(r["bar"])
     share_lines.append(f"🏁 Total Score: {score}")
     share_text = "\n".join(share_lines)
 
+    # Handle email submission for leaderboard
     if request.method == "POST":
         email = request.form.get("email")
         if email:
-            session["email"] = email  # 👈 save their email for highlighting
+            session["email"] = email
             today = datetime.date.today().isoformat()
             filename = f"leaderboard_{today}.csv"
 
-            # Read existing entries
-            entries = {}
+            entries_dict = {}
             if os.path.isfile(filename):
                 with open(filename, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
-                        entries[row["email"]] = int(row["score"])
+                        entries_dict[row["email"]] = int(row["score"])
 
-            # Only keep highest score
-            entries[email] = max(entries.get(email, 0), score)
+            # Keep the highest score
+            entries_dict[email] = max(entries_dict.get(email, 0), score)
 
-            # Write updated file
             with open(filename, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
-                for e, s in entries.items():
+                for e, s in entries_dict.items():
                     writer.writerow({"email": e, "score": s})
 
-            return redirect(url_for("leaderboard"))
+            session["freeplay_unlocked"] = True
+            return redirect(url_for("result"))
 
-    # SEO data for results page
-    seo_title = "SightCr - See Your Virtual Travel Results & Share Your Score"
-    seo_description = "Check your scores in SightCr, the virtual travel game! Share your results, see how far your guesses were, and challenge friends to explore the world."
-    seo_keywords = "travel game results, geography quiz results, virtual travel score, SightCr leaderboard, explore world, online travel game"
+    # Check if freeplay is unlocked
+    score_submitted = session.get("freeplay_unlocked", False)
+
+    # Load today's leaderboard
+    today = datetime.date.today().isoformat()
+    filename = f"leaderboard_{today}.csv"
+    entries = []
+    user_email = session.get("email")
+    if os.path.isfile(filename):
+        with open(filename, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                entries.append({"email": row["email"], "score": int(row["score"])})
+
+    # Sort descending by score
+    entries.sort(key=lambda x: x["score"], reverse=True)
 
     return render_template(
-        "final_results.html",
+        "result.html",  # Use the new combined template
         score=score,
+        results=results,
         share_text=share_text,
-        seo_title=seo_title,
-        seo_description=seo_description,
-        seo_keywords=seo_keywords
+        entries=entries,
+        user_email=user_email,
+        freeplay_unlocked=score_submitted
     )
+
 
 @app.route("/leaderboard")
 def leaderboard():
     today = datetime.date.today().isoformat()
     filename = f"leaderboard_{today}.csv"
     entries = []
-    user_email = session.get("email")  # 👈 user's own email
+    user_email = session.get("email")
 
     if os.path.isfile(filename):
         with open(filename, newline="", encoding="utf-8") as f:
@@ -216,34 +229,41 @@ def leaderboard():
     return render_template("leaderboard.html", entries=entries, user_email=user_email)
 
 
+@app.route("/freeplay")
+def freeplay():
+    """Free play mode — only unlocked after leaderboard submission."""
+    if not session.get("freeplay_unlocked"):
+        return redirect(url_for("result"))
+
+    loc = random.choice(ALL_LOCATIONS)
+    return render_template(
+        "freeplay.html",
+        lat=loc["lat"],
+        lon=loc["lon"],
+        heading=loc.get("heading", 0),
+        api_key=GOOGLE_API_KEY
+    )
+
 
 @app.route("/robots.txt")
 def robots_txt():
     lines = [
         "User-Agent: *",
-        "Disallow:",  # allow all pages
-        "Sitemap: https://yourdomain.com/sitemap.xml"  # 👈 replace with your real domain
+        "Disallow:",
+        "Sitemap: https://sightcr.com/sitemap.xml"
     ]
     return "\n".join(lines), 200, {"Content-Type": "text/plain"}
 
+
 @app.route("/sitemap.xml")
 def sitemap():
-    pages = []
-
-    # Add static routes (you can add more)
     static_routes = ["index", "leaderboard", "result"]
-    for route in static_routes:
-        url = url_for(route, _external=True)
-        pages.append(f"<url><loc>{url}</loc></url>")
-
-    # Optional: add last modified date
+    pages = [f"<url><loc>{url_for(r, _external=True)}</loc></url>" for r in static_routes]
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {''.join(pages)}
 </urlset>"""
-
     return xml, 200, {"Content-Type": "application/xml"}
-
 
 
 if __name__ == "__main__":
