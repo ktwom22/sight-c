@@ -231,11 +231,13 @@ def leaderboard():
 
 @app.route("/freeplay")
 def freeplay():
-    """Free play mode — only unlocked after leaderboard submission."""
     if not session.get("freeplay_unlocked"):
         return redirect(url_for("result"))
 
     loc = random.choice(ALL_LOCATIONS)
+    session["freeplay_actual_lat"] = loc["lat"]
+    session["freeplay_actual_lon"] = loc["lon"]
+
     return render_template(
         "freeplay.html",
         lat=loc["lat"],
@@ -244,6 +246,37 @@ def freeplay():
         api_key=GOOGLE_API_KEY
     )
 
+
+@app.route("/freeplay_guess", methods=["POST"])
+def freeplay_guess():
+    guessed_lat = float(request.form.get("lat"))
+    guessed_lon = float(request.form.get("lon"))
+    actual_lat = session.get("freeplay_actual_lat")
+    actual_lon = session.get("freeplay_actual_lon")
+
+    distance_km = round(haversine(actual_lat, actual_lon, guessed_lat, guessed_lon), 1)
+    distance_mi = round(distance_km * 0.621371, 1)
+
+    if distance_km < 5:
+        bar = "📍🟩📍"
+    elif distance_km < 50:
+        bar = "📍🟨📍"
+    elif distance_km < 500:
+        bar = "📍🟧📍"
+    else:
+        bar = "📍🟥📍"
+
+    return render_template(
+        "freeplay_result.html",
+        guessed_lat=guessed_lat,
+        guessed_lon=guessed_lon,
+        actual_lat=actual_lat,
+        actual_lon=actual_lon,
+        distance_km=distance_km,
+        distance_mi=distance_mi,
+        bar=bar,
+        api_key=GOOGLE_API_KEY
+    )
 
 @app.route("/robots.txt")
 def robots_txt():
