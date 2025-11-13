@@ -23,10 +23,15 @@ def is_europe(loc):
     return -10 <= loc["lon"] <= 40 and 35 <= loc["lat"] <= 70
 
 def get_daily_locations():
-    """Return 5 deterministic locations weighted for Europe/US."""
     today = datetime.date.today().isoformat()
-    random.seed(today)
+    cache_file = f"daily_locations_{today}.json"
 
+    if os.path.isfile(cache_file):
+        with open(cache_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    # otherwise generate deterministically
+    random.seed(today)
     us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
     europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
     other_locations = [loc for loc in ALL_LOCATIONS if loc not in us_locations + europe_locations]
@@ -41,7 +46,11 @@ def get_daily_locations():
         else:
             weighted_choices.append(random.choice(other_locations))
 
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(weighted_choices, f, ensure_ascii=False, indent=2)
+
     return weighted_choices
+
 
 def haversine(lat1, lon1, lat2, lon2):
     """Distance in km between two lat/lon points"""
@@ -86,15 +95,16 @@ def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round
 @app.before_request
 def setup_game():
     today = datetime.date.today().isoformat()
+    # If the user hasn’t played today, initialize a new game
     if session.get("last_played_date") != today:
-        last_date = session.get("last_played_date")
         session.clear()
-        session["last_played_date"] = today
         session["score"] = 0
         session["round"] = 1
         session["results"] = []
-        session["game_locations"] = get_daily_locations()
+        session["game_locations"] = get_daily_locations()  # deterministic per day
         session["instructions_shown"] = False
+        session["last_played_date"] = today
+
 
 @app.route("/")
 def index():
