@@ -231,12 +231,24 @@ def leaderboard():
 
 @app.route("/freeplay")
 def freeplay():
+    """Free play mode — only unlocked after leaderboard submission."""
     if not session.get("freeplay_unlocked"):
         return redirect(url_for("result"))
 
-    loc = random.choice(ALL_LOCATIONS)
-    session["freeplay_actual_lat"] = loc["lat"]
-    session["freeplay_actual_lon"] = loc["lon"]
+    recent = session.get("freeplay_recent", [])
+
+    # Filter locations that haven't been recently used
+    available = [loc for loc in ALL_LOCATIONS if loc not in recent]
+    if not available:
+        # Reset if all locations have been used
+        available = ALL_LOCATIONS
+        recent = []
+
+    loc = random.choice(available)
+
+    # Update session
+    recent.append(loc)
+    session["freeplay_recent"] = recent[-10:]  # keep last 10 used
 
     return render_template(
         "freeplay.html",
@@ -244,8 +256,8 @@ def freeplay():
         lon=loc["lon"],
         heading=loc.get("heading", 0),
         api_key=GOOGLE_API_KEY
-    )
 
+    )
 
 @app.route("/freeplay_guess", methods=["POST"])
 def freeplay_guess():
