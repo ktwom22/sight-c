@@ -2,3 +2,5 @@ Flask
 geopy
 gunicorn
 Flask_session
+requests
+geopandas
