@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session, redirect, url_for
-import random, math, csv, os, json, datetime
+import random, math, csv, os, json, datetime, requests
+from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -11,7 +12,6 @@ with open("streetview_locations.json", "r", encoding="utf-8") as f:
     ALL_LOCATIONS = json.load(f)
 
 # --- Helper functions ---
-
 def is_us(loc):
     return -125 <= loc["lon"] <= -66 and 24 <= loc["lat"] <= 50
 
@@ -23,7 +23,6 @@ def get_daily_locations():
     today = datetime.date.today().isoformat()
     random.seed(today)  # deterministic for all users
 
-    # Separate pools
     us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
     europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
     other_locations = [loc for loc in ALL_LOCATIONS if loc not in us_locations + europe_locations]
@@ -50,8 +49,49 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# --- Flask hooks and routes ---
+# --- Shareable Image Setup ---
+SHARE_IMAGE_FOLDER = "static/share_images"
+os.makedirs(SHARE_IMAGE_FOLDER, exist_ok=True)
 
+def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round_score, distance_km, filename=None):
+    """Generates a shareable map image with actual and guessed locations marked."""
+    if filename is None:
+        filename = f"share_{actual_lat}_{actual_lon}_{guessed_lat}_{guessed_lon}.png"
+    filepath = os.path.join(SHARE_IMAGE_FOLDER, filename)
+
+    map_url = (
+        f"https://maps.googleapis.com/maps/api/staticmap?"
+        f"size=600x400"
+        f"&maptype=roadmap"
+        f"&markers=color:red|label:A|{actual_lat},{actual_lon}"
+        f"&markers=color:blue|label:G|{guessed_lat},{guessed_lon}"
+        f"&key={GOOGLE_API_KEY}"
+    )
+
+    resp = requests.get(map_url)
+    if resp.status_code != 200:
+        print("Error fetching static map!")
+        return None
+
+    with open(filepath, "wb") as f:
+        f.write(resp.content)
+
+    img = Image.open(filepath)
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("arial.ttf", 20)
+    except:
+        font = ImageFont.load_default()
+
+    text = f"Score: {round_score} | Distance: {distance_km} km"
+    text_w, text_h = draw.textsize(text, font=font)
+    draw.rectangle([0, img.height - text_h - 10, text_w + 10, img.height], fill=(255, 255, 255, 200))
+    draw.text((5, img.height - text_h - 5), text, fill="black", font=font)
+
+    img.save(filepath)
+    return "/" + filepath.replace("\\", "/")
+
+# --- Flask hooks and routes ---
 @app.before_request
 def setup_game():
     today = datetime.date.today().isoformat()
@@ -78,9 +118,8 @@ def index():
     session["heading"] = loc.get("heading", 0)
     show_instructions = not session.get("instructions_shown", False)
 
-    seo_title = "GeoGuesser - Play the Ultimate Travel Quiz Game"
-    seo_description = "Guess locations around the world and test your geography skills with GeoGuesser. Travel virtually and challenge yourself!"
-    seo_keywords = "travel game, geography quiz, world map game, virtual travel game, learn geography, travel challenge, GeoGuesser"
+    # Example: generate a shareable image URL (could be dynamic or static placeholder)
+    share_image_url = url_for('static', filename='images/share_placeholder.png', _external=True)
 
     return render_template(
         "index.html",
@@ -91,10 +130,12 @@ def index():
         round=round_num,
         score=score,
         show_instructions=show_instructions,
-        seo_title=seo_title,
-        seo_description=seo_description,
-        seo_keywords=seo_keywords
+        seo_title="GeoGuesser - Play the Ultimate Travel Quiz Game",
+        seo_description="Guess locations around the world and test your geography skills with GeoGuesser. Travel virtually and challenge yourself!",
+        seo_keywords="travel game, geography quiz, world map game, virtual travel game, learn geography, travel challenge, GeoGuesser",
+        share_image_url=share_image_url
     )
+
 
 @app.route("/instructions_shown", methods=["POST"])
 def instructions_shown():
@@ -114,7 +155,6 @@ def guess():
     round_score = max(0, int(1000 - distance_km))
     score += round_score
 
-    # Distance bar
     if distance_km < 5:
         bar = "📍🟩📍"
     elif distance_km < 50:
@@ -150,19 +190,29 @@ def round_result():
     last_result = results[-1]
     score = session.get("score", 0)
     round_num = last_result["round"]
+
+    share_image_url = generate_share_image(
+        actual_lat=last_result["actual_lat"],
+        actual_lon=last_result["actual_lon"],
+        guessed_lat=last_result["guessed_lat"],
+        guessed_lon=last_result["guessed_lon"],
+        round_score=last_result["round_score"],
+        distance_km=last_result["distance_km"]
+    )
+
     return render_template(
         "round_result.html",
         result=last_result,
         score=score,
         round=round_num,
-        api_key=GOOGLE_API_KEY
+        api_key=GOOGLE_API_KEY,
+        share_image_url=share_image_url
     )
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
     results = session.get("results", [])
     score = session.get("score", 0)
-
     if not results:
         return redirect(url_for("index"))
 
@@ -241,10 +291,11 @@ def freeplay():
         recent = []
 
     loc = random.choice(available)
-    recent.append(loc)
-    session["freeplay_recent"] = recent[-10:]
     session["freeplay_actual_lat"] = loc["lat"]
     session["freeplay_actual_lon"] = loc["lon"]
+    session["freeplay_heading"] = loc.get("heading", 0)
+    recent.append(loc)
+    session["freeplay_recent"] = recent[-10:]
 
     return render_template(
         "freeplay.html",
@@ -272,6 +323,15 @@ def freeplay_guess():
     else:
         bar = "📍🟥📍"
 
+    share_image_url = generate_share_image(
+        actual_lat=actual_lat,
+        actual_lon=actual_lon,
+        guessed_lat=guessed_lat,
+        guessed_lon=guessed_lon,
+        round_score=max(0, int(1000 - distance_km)),
+        distance_km=distance_km
+    )
+
     return render_template(
         "freeplay_result.html",
         guessed_lat=guessed_lat,
@@ -281,7 +341,8 @@ def freeplay_guess():
         distance_km=distance_km,
         distance_mi=distance_mi,
         bar=bar,
-        api_key=GOOGLE_API_KEY
+        api_key=GOOGLE_API_KEY,
+        share_image_url=share_image_url
     )
 
 @app.route("/robots.txt")

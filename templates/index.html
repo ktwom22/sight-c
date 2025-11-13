@@ -1,11 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ seo_title }}</title>
-<meta name="description" content="{{ seo_description }}">
-<meta name="keywords" content="{{ seo_keywords }}">
+
+<title>SightCR | Street View Guessing Game & Geography Quiz</title>
+<meta name="description" content="Play SightCR – the ultimate Street View guessing game! Test your geography skills, explore cities around the world, and compete with friends. Free daily challenges available.">
+<meta name="keywords" content="Street View game, geography quiz, world map game, virtual travel game, SightCR, daily challenges">
+
+<!-- Open Graph / Social Sharing -->
+<meta property="og:title" content="SightCR - Street View Guessing Game">
+<meta property="og:description" content="Guess locations around the world in this fun geography game. Compete daily and unlock freeplay!">
+<meta property="og:image" content="https://sightcr.com/static/images/share-image.png">
+<meta property="og:url" content="https://sightcr.com/">
+<meta property="og:type" content="website">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SightCR - Street View Guessing Game">
+<meta name="twitter:description" content="Guess locations around the world in this fun geography game. Compete daily and unlock freeplay!">
+<meta name="twitter:image" content="https://sightcr.com/static/images/share-image.png">
+
+<!-- Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "SightCR",
+  "url": "https://sightcr.com/",
+  "potentialAction": {
+    "@type": "PlayAction",
+    "target": "https://sightcr.com/",
+    "name": "Play the Street View Guessing Game"
+  }
+}
+</script>
 
 <style>
 html, body {
@@ -14,7 +43,7 @@ html, body {
     height: 100%;
     font-family: Arial, sans-serif;
     background: #f4f4f4;
-    overflow: hidden; /* No scroll */
+    overflow: hidden;
 }
 
 body {
@@ -22,19 +51,17 @@ body {
     flex-direction: column;
 }
 
-/* Main container that fills viewport */
 .main-container {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Top content + map + button */
+    justify-content: space-between;
     align-items: center;
     height: 100vh;
     box-sizing: border-box;
     padding: 10px;
 }
 
-/* Street View and Map share space */
 #street-view, #map {
     width: 90%;
     max-width: 1200px;
@@ -43,7 +70,6 @@ body {
     margin: 5px 0;
 }
 
-/* Submit button */
 #submit-btn {
     padding: 14px 30px;
     font-size: 18px;
@@ -60,65 +86,18 @@ body {
 #submit-btn:hover:enabled {
     background-color: #218838;
 }
-
-/* Instructions modal */
-#instructionsModal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(4px);
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-#instructionsContent {
-    background: white;
-    border-radius: 16px;
-    padding: 25px;
-    max-width: 400px;
-    width: 90%;
-    text-align: center;
-}
 </style>
 </head>
+
 <body>
-
-<!-- Instructions Modal -->
-<div id="instructionsModal">
-  <div id="instructionsContent">
-    <h2>How to Play</h2>
-    <p>Guess the location in Google Street View as close as possible. After 5 rounds, see your score and share results! </p>
-    <p>By Submitting your score you unlock freeplay mode which allows you to play other random locations around the world!</p>
-    <button id="gotItBtn">Got it!</button>
-  </div>
-</div>
-
-
-
-<script>
-const showInstructions = {{ 'true' if show_instructions else 'false' }};
-const modal = document.getElementById('instructionsModal');
-
-if(showInstructions){
-    modal.style.display = 'flex';
-}
-
-document.getElementById('gotItBtn').addEventListener('click', () => {
-    fetch('/instructions_shown', {method:'POST'}).then(() => {
-        modal.style.display = 'none';
-    });
-});
-</script>
-
 <div class="main-container">
-    <div>
-        <h1>🌍 Street View Guess</h1>
+    <header>
+        <h1>🌍 SightCR - Street View Guessing Game</h1>
         <p>Round {{ round }} | Score: {{ score }}</p>
-    </div>
+    </header>
 
-    <div id="street-view"></div>
-    <div id="map"></div>
+    <div id="street-view" aria-label="Google Street View"></div>
+    <div id="map" aria-label="World Map to place your guess"></div>
 
     <form method="POST" action="{{ url_for('guess') }}">
         <input type="hidden" name="lat" id="guess-lat">
