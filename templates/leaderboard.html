@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-8WQ2J22B9Z');
+</script>
   <meta charset="utf-8">
   <title>🏆 SightCr Leaderboard</title>
   <style>
@@ -77,16 +84,18 @@
   <p>See how your score compares to other players!</p>
 
   <table>
-    <tr><th>Email</th><th>Score</th></tr>
+    <tr><th>Player</th><th>Score</th></tr>
     {% for e in entries %}
+      {% set display_name = e.email.split('@')[0] %}
       <tr {% if e.email == user_email %}class="highlight"{% endif %}>
-        <td>{{ e.email }}</td>
+        <td>{{ display_name }}</td>
         <td>{{ e.score }}</td>
       </tr>
     {% endfor %}
   </table>
 
   <!-- Free Play Unlocked Section -->
+  {% if freeplay_unlocked %}
   <div class="freeplay-box">
     <h2>🌍 Free Play Unlocked!</h2>
     <p>Explore random locations from around the world — no leaderboard, just fun.</p>
@@ -94,6 +103,7 @@
       🎮 Start Free Play
     </button>
   </div>
+  {% endif %}
 
 </body>
 </html>

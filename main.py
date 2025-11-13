@@ -210,38 +210,43 @@ def result():
     if not results:
         return redirect(url_for("index"))
 
-    # Share text for social media
+    # --- Build Share Text ---
     share_lines = ["🌎 GeoGuesser Results"]
     for r in results:
         share_lines.append(r.get("bar", "📍❔📍"))
     share_lines.append(f"🏁 Total Score: {score}")
     share_text = "\n".join(share_lines)
 
-    # Ensure leaderboard folder exists
+    # --- Leaderboard Setup ---
     LEADERBOARD_DIR = os.path.join(os.path.dirname(__file__), "leaderboards")
     os.makedirs(LEADERBOARD_DIR, exist_ok=True)
-
     today = datetime.date.today().isoformat()
     leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
 
-    # Handle POST (email submission)
+    print(f"[DEBUG] Leaderboard file path: {leaderboard_file}")
+
+    # --- Handle POST (email submission) ---
     if request.method == "POST":
         email = request.form.get("email", "").strip()
+        print(f"[DEBUG] Submitting email: {email} | Score: {score}")
+
         if email:
             session["email"] = email
             entries_dict = {}
 
             # Read existing leaderboard
             if os.path.isfile(leaderboard_file):
+                print("[DEBUG] Existing leaderboard found, reading...")
                 with open(leaderboard_file, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         entries_dict[row["email"]] = int(row["score"])
 
-            # Update score
+            # Update or add this user's score
             entries_dict[email] = max(entries_dict.get(email, 0), score)
+            print(f"[DEBUG] Updated leaderboard entries: {entries_dict}")
 
-            # Write leaderboard file
+            # Write updated leaderboard
             with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
@@ -249,20 +254,27 @@ def result():
                     writer.writerow({"email": e, "score": s})
 
             session["freeplay_unlocked"] = True
+            print("[DEBUG] Leaderboard updated successfully!")
             return redirect(url_for("result"))
 
-    # Load leaderboard for display
+    # --- Load Leaderboard for Display ---
     entries = []
     if os.path.isfile(leaderboard_file):
+        print("[DEBUG] Reading leaderboard to display...")
         with open(leaderboard_file, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 entries.append({"email": row["email"], "score": int(row["score"])})
+    else:
+        print("[DEBUG] Leaderboard file not found when displaying results.")
+
     entries.sort(key=lambda x: x["score"], reverse=True)
 
-    # Context
+    # --- Context ---
     user_email = session.get("email")
     score_submitted = session.get("freeplay_unlocked", False)
+
+    print(f"[DEBUG] Displaying {len(entries)} leaderboard entries")
 
     return render_template(
         "result.html",
@@ -276,6 +288,7 @@ def result():
         seo_description="Check your GeoGuesser results, compare with others, and share your score.",
         seo_keywords="GeoGuesser results, travel game, geography challenge, world map game"
     )
+
 
 
 
