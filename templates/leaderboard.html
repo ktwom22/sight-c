@@ -85,9 +85,10 @@
 
   <table>
     <tr><th>Player</th><th>Score</th></tr>
+    {% set user_display_name = user_email.split('@')[0] if user_email else "" %}
     {% for e in entries %}
       {% set display_name = e.email.split('@')[0] %}
-      <tr {% if e.email == user_email %}class="highlight"{% endif %}>
+      <tr {% if display_name == user_display_name %}class="highlight"{% endif %}>
         <td>{{ display_name }}</td>
         <td>{{ e.score }}</td>
       </tr>

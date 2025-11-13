@@ -267,16 +267,19 @@ def result():
             print("[DEBUG] Leaderboard updated successfully!")
             return redirect(url_for("result"))
 
-    # --- Load Leaderboard for Display ---
+    # --- Load Leaderboard for Display ----
     entries = []
+    user_email = session.get("email") or ""
+    user_display_name = user_email.split("@")[0] if "@" in user_email else user_email
+
     if os.path.isfile(leaderboard_file):
-        print("[DEBUG] Reading leaderboard to display...")
         with open(leaderboard_file, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                entries.append({"email": row["email"], "score": int(row["score"])})
-    else:
-        print("[DEBUG] Leaderboard file not found when displaying results.")
+                email_full = row["email"]
+                score_val = int(row["score"])
+                display_name = email_full.split("@")[0]  # only keep part before @
+                entries.append({"email": display_name, "score": score_val})
 
     entries.sort(key=lambda x: x["score"], reverse=True)
 
