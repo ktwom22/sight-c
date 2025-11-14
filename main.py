@@ -209,11 +209,17 @@ def result():
             email = posted_email
             session["email"] = email
             conn = get_db()
-            conn.execute("""
-                INSERT INTO leaderboard(date,email,score)
-                VALUES (?,?,?)
-                ON CONFLICT(date,email) DO UPDATE SET score=MAX(score,excluded.score)
-            """, (today, email, session.get("score",0)))
+            # Try insert first
+            try:
+                conn.execute("INSERT INTO leaderboard(date,email,score) VALUES (?,?,?)",
+                             (today, email, session.get("score", 0)))
+            except sqlite3.IntegrityError:
+                # Already exists, update only if new score is higher
+                conn.execute("""
+                    UPDATE leaderboard
+                    SET score=?
+                    WHERE date=? AND email=? AND score<?
+                """, (session.get("score", 0), today, email, session.get("score", 0)))
             conn.commit()
             conn.close()
             session["freeplay_unlocked"] = True
