@@ -1,6 +1,6 @@
 # main.py
 from flask import Flask, render_template, request, session, redirect, url_for
-import random, math, csv, os, json, datetime, requests, logging, re
+import random, math, os, json, datetime, requests, logging, re, sqlite3
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask_compress import Compress
@@ -111,6 +111,30 @@ def safe_float(value, default=0.0):
     try: return float(value)
     except: return default
 
+# ---------- SQLite leaderboard ----------
+PROJECT_DIR = os.path.dirname(__file__)
+DB_FILE = os.path.join(PROJECT_DIR, "leaderboard.db")
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS leaderboard (
+            date TEXT,
+            email TEXT,
+            score INTEGER,
+            PRIMARY KEY(date,email)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
 # ---------- Flask hooks ----------
 @app.before_request
 def setup_game():
@@ -190,47 +214,39 @@ def result():
     score = session.get("score",0)
     if not results: return redirect(url_for("index"))
 
-    # Leaderboard per day
-    PROJECT_DIR = os.path.dirname(__file__)
-    LEADERBOARD_DIR = os.path.join(PROJECT_DIR, "leaderboards")
-    os.makedirs(LEADERBOARD_DIR, exist_ok=True)
     today = datetime.date.today().isoformat()
-    leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
 
     if request.method == "POST":
         email = (request.form.get("email") or "").strip()
         if is_valid_email(email):
             session["email"] = email
 
-            # Read and update leaderboard
-            entries_dict = {}
-            if os.path.isfile(leaderboard_file):
-                with open(leaderboard_file, newline="", encoding="utf-8") as f:
-                    for row in csv.DictReader(f):
-                        try: entries_dict[row["email"]] = int(row["score"])
-                        except: pass
+            conn = get_db_connection()
+            row = conn.execute(
+                "SELECT score FROM leaderboard WHERE date=? AND email=?",
+                (today,email)
+            ).fetchone()
+            existing_score = row["score"] if row else 0
 
-            entries_dict[email] = max(entries_dict.get(email,0), score)
-
-            # Write updated leaderboard
-            with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=["email","score"])
-                writer.writeheader()
-                for e,s in entries_dict.items(): writer.writerow({"email":e,"score":s})
-
+            if score > existing_score:
+                conn.execute(
+                    "INSERT OR REPLACE INTO leaderboard(date,email,score) VALUES(?,?,?)",
+                    (today,email,score)
+                )
+                conn.commit()
+            conn.close()
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
     # Load leaderboard for display
-    entries_dict = {}
-    if os.path.isfile(leaderboard_file):
-        with open(leaderboard_file, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                try: entries_dict[row["email"]] = int(row["score"])
-                except: continue
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT email, score FROM leaderboard WHERE date=? ORDER BY score DESC",
+        (today,)
+    ).fetchall()
+    conn.close()
 
-    entries = [{"email": e.split('@')[0], "score": s} for e,s in entries_dict.items()]
-    entries.sort(key=lambda x: x["score"], reverse=True)
+    entries = [{"email": r["email"].split("@")[0], "score": r["score"]} for r in rows]
 
     user_email = session.get("email", "")
     return render_template("result.html", results=results, entries=entries, total_score=score, user_email=user_email, freeplay_unlocked=session.get("freeplay_unlocked", False))
