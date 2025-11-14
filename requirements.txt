@@ -6,3 +6,5 @@ requests
 geopandas
 dotenv
 werkzeug
+compress
+flask_compress

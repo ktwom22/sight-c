@@ -3,11 +3,15 @@ from flask import Flask, render_template, request, session, redirect, url_for, a
 import random, math, csv, os, json, datetime, requests, logging, re
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from flask_compress import Compress
+
+
 
 load_dotenv()
 
 
 app = Flask(__name__)
+Compress(app)
 
 # ---------- CONFIG ----------
 # Use environment variables for secrets in production
