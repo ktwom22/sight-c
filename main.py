@@ -58,40 +58,63 @@ except Exception as e:
 def is_us(loc): return -125 <= loc["lon"] <= -66 and 24 <= loc["lat"] <= 50
 def is_europe(loc): return -10 <= loc["lon"] <= 40 and 35 <= loc["lat"] <= 70
 
-def get_daily_locations():
-    today = str(date.today())
-    DAILY_FILE = "daily_locations.json"
-    LOCATIONS_FOLDER = "game_locations"
-    NUM_DAILY_IMAGES = 3  # adjust if needed
+def get_daily_locations(force=False, tz=None):
+    """
+    Returns list of 5 locations for today.
+    - force=True: ignore cache and generate new (non-deterministic).
+    - tz: optional datetime.tzinfo to compute 'today' in a specific timezone.
+    """
+    if tz is None:
+        today_date = datetime.date.today()
+    else:
+        now = datetime.datetime.now(tz)
+        today_date = now.date()
 
-    # Step 1 — If today's file exists, use it
-    if os.path.exists(DAILY_FILE):
+    today = today_date.isoformat()
+    cache_file = os.path.join(os.path.dirname(__file__), f"daily_locations_{today}.json")
+
+    # If cached and not forcing, return cached copy
+    if not force and os.path.isfile(cache_file):
         try:
-            with open(DAILY_FILE, "r") as f:
-                data = json.load(f)
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
 
-            if data.get("date") == today:
-                return data["locations"]
-        except:
-            pass  # corrupted → regenerate
+    # Partition locations
+    us = [loc for loc in ALL_LOCATIONS if is_us(loc)]
+    eu = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
+    other = [loc for loc in ALL_LOCATIONS if loc not in us and loc not in eu]
 
-    # Step 2 — Else: choose new random images
-    all_images = [
-        f for f in os.listdir(LOCATIONS_FOLDER)
-        if f.lower().endswith((".jpg", ".jpeg", ".png"))
-    ]
+    chosen = []
+    # If forcing, use a real-random generator so results differ immediately.
+    if force:
+        rng = random.Random()
+    else:
+        # deterministic per-day seed so it's consistent for the day
+        rng = random.Random(today)
 
-    new_images = random.sample(all_images, NUM_DAILY_IMAGES)
+    for _ in range(5):
+        r = rng.random()
+        if r < 0.5 and eu:
+            chosen.append(rng.choice(eu))
+        elif r < 0.8 and us:
+            chosen.append(rng.choice(us))
+        elif other:
+            chosen.append(rng.choice(other))
+        else:
+            # fallback in case partition empty
+            pool = eu or us or other or ALL_LOCATIONS
+            chosen.append(rng.choice(pool))
 
-    # Step 3 — Save new file
-    with open(DAILY_FILE, "w") as f:
-        json.dump({
-            "date": today,
-            "locations": new_images
-        }, f, indent=4)
+    # Write cache so subsequent calls reuse the same list (unless force=True)
+    try:
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(chosen, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("Failed to write daily cache: %s", e)
 
-    return new_images
-
+    return chosen
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
