@@ -267,10 +267,14 @@ def result():
                 entries.append({"email": display_name, "score": score_val})
     entries.sort(key=lambda x: x["score"], reverse=True)
 
-    return render_template("result.html",
-                           results=results, entries=entries, total_score=score,
-                           user_email=user_email, freeplay_unlocked=session.get("freeplay_unlocked", False)
-                           )
+    return render_template(
+        "result.html",
+        results=results,
+        entries=entries,  # the leaderboard entries list
+        total_score=score,
+        user_email=user_email,
+        freeplay_unlocked=session.get("freeplay_unlocked", False)
+    )
 
 
 @app.route("/leaderboard")
