@@ -59,36 +59,39 @@ def is_us(loc): return -125 <= loc["lon"] <= -66 and 24 <= loc["lat"] <= 50
 def is_europe(loc): return -10 <= loc["lon"] <= 40 and 35 <= loc["lat"] <= 70
 
 def get_daily_locations():
-    today = datetime.date.today().isoformat()
-    cache_file = os.path.join(os.path.dirname(__file__), f"daily_locations_{today}.json")
-    if os.path.isfile(cache_file):
+    today = str(date.today())
+    DAILY_FILE = "daily_locations.json"
+    LOCATIONS_FOLDER = "game_locations"
+    NUM_DAILY_IMAGES = 3  # adjust if needed
+
+    # Step 1 — If today's file exists, use it
+    if os.path.exists(DAILY_FILE):
         try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except: pass
+            with open(DAILY_FILE, "r") as f:
+                data = json.load(f)
 
-    us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
-    europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
-    other_locations = [loc for loc in ALL_LOCATIONS if loc not in us_locations + europe_locations]
+            if data.get("date") == today:
+                return data["locations"]
+        except:
+            pass  # corrupted → regenerate
 
-    chosen = []
-    rng = random.Random(today)
-    for _ in range(5):
-        p = rng.random()
-        if p < 0.5 and europe_locations:
-            chosen.append(rng.choice(europe_locations))
-        elif p < 0.8 and us_locations:
-            chosen.append(rng.choice(us_locations))
-        elif other_locations:
-            chosen.append(rng.choice(other_locations))
+    # Step 2 — Else: choose new random images
+    all_images = [
+        f for f in os.listdir(LOCATIONS_FOLDER)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ]
 
-    try:
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(chosen, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.warning("Failed to write daily cache: %s", e)
+    new_images = random.sample(all_images, NUM_DAILY_IMAGES)
 
-    return chosen
+    # Step 3 — Save new file
+    with open(DAILY_FILE, "w") as f:
+        json.dump({
+            "date": today,
+            "locations": new_images
+        }, f, indent=4)
+
+    return new_images
+
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -204,7 +207,7 @@ def result():
         return redirect(url_for("index"))
 
     # Folder for daily leaderboards
-    LEADERBOARD_DIR = os.path.join(os.path.dirname(__file__), "leaderboards")
+    LEADERBOARD_DIR = os.environ.get("LEADERBOARD_DIR", "/data/leaderboards")
     os.makedirs(LEADERBOARD_DIR, exist_ok=True)
     today = datetime.date.today().isoformat()
     leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
@@ -290,6 +293,24 @@ def reset():
     conn.commit()
     conn.close()
     return redirect(url_for("index"))
+
+
+@app.route("/force_new_locations")
+def force_new_locations():
+    # regenerate ignoring any cache / deterministic seed
+    chosen = get_daily_locations(force=True)
+    session.clear()
+    session.update({
+        "score":0,
+        "round":1,
+        "results":[],
+        "game_locations": chosen,
+        "instructions_shown": False,
+        "last_played_date": datetime.date.today().isoformat()
+    })
+    return "Forced new locations. Reload /"
+
+
 
 # ---------- SEO ----------
 @app.route("/robots.txt")
