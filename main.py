@@ -403,18 +403,17 @@ def freeplay():
     if not session.get("freeplay_unlocked"):
         return redirect(url_for("result"))
 
-    recent = session.get("freeplay_recent", [])
-    available = [loc for loc in ALL_LOCATIONS if loc not in recent]
-    if not available:
-        available = ALL_LOCATIONS
-        recent = []
+    # Pick a random location from all locations
+    if not ALL_LOCATIONS:
+        # fallback if locations are missing
+        loc = {"lat": 0, "lon": 0, "heading": 0}
+    else:
+        loc = random.choice(ALL_LOCATIONS)
 
-    loc = random.choice(available) if available else {"lat": 0, "lon": 0}
+    # Store location in session for guessing
     session["freeplay_actual_lat"] = loc.get("lat")
     session["freeplay_actual_lon"] = loc.get("lon")
     session["freeplay_heading"] = loc.get("heading", 0)
-    recent.append(loc)
-    session["freeplay_recent"] = recent[-10:]
 
     return render_template(
         "freeplay.html",
@@ -424,12 +423,14 @@ def freeplay():
         api_key=GOOGLE_API_KEY
     )
 
+
 @app.route("/freeplay_guess", methods=["POST"])
 def freeplay_guess():
     guessed_lat = safe_float(request.form.get("lat"))
     guessed_lon = safe_float(request.form.get("lon"))
     actual_lat = session.get("freeplay_actual_lat")
     actual_lon = session.get("freeplay_actual_lon")
+
     if actual_lat is None or actual_lon is None:
         return redirect(url_for("freeplay"))
 
