@@ -117,7 +117,14 @@ def setup_game():
     today = datetime.date.today().isoformat()
     if session.get("last_played_date") != today:
         session.clear()
-        session.update({"score":0, "round":1, "results":[], "game_locations": get_daily_locations(), "instructions_shown": False, "last_played_date": today, "freeplay_unlocked": False})
+        session.update({
+            "score":0,
+            "round":1,
+            "results":[],
+            "game_locations": get_daily_locations(),
+            "instructions_shown": False,
+            "last_played_date": today
+        })
 
 # ---------- Routes ----------
 @app.route("/")
@@ -149,13 +156,22 @@ def guess():
     round_score = max(0, int(1000 - distance_km))
     session["score"] += round_score
 
-    if distance_km < 5: bar="📍🟩📍"
-    elif distance_km < 50: bar="📍🟨📍"
-    elif distance_km < 500: bar="📍🟧📍"
-    else: bar="📍🟥📍"
+    bar = "📍🟥📍"
+    if distance_km < 5: bar = "📍🟩📍"
+    elif distance_km < 50: bar = "📍🟨📍"
+    elif distance_km < 500: bar = "📍🟧📍"
 
-    session["results"].append({"round": session["round"], "bar": bar, "distance_km": round(distance_km,1), "round_score": round_score, "guessed_lat": guessed_lat, "guessed_lon": guessed_lon, "actual_lat": actual_lat, "actual_lon": actual_lon})
-    session["round"] +=1
+    session["results"].append({
+        "round": session["round"],
+        "bar": bar,
+        "distance_km": round(distance_km,1),
+        "round_score": round_score,
+        "guessed_lat": guessed_lat,
+        "guessed_lon": guessed_lon,
+        "actual_lat": actual_lat,
+        "actual_lon": actual_lon
+    })
+    session["round"] += 1
 
     return redirect(url_for("round_result"))
 
@@ -174,6 +190,7 @@ def result():
     score = session.get("score",0)
     if not results: return redirect(url_for("index"))
 
+    # Leaderboard per day
     PROJECT_DIR = os.path.dirname(__file__)
     LEADERBOARD_DIR = os.path.join(PROJECT_DIR, "leaderboards")
     os.makedirs(LEADERBOARD_DIR, exist_ok=True)
@@ -184,32 +201,41 @@ def result():
         email = (request.form.get("email") or "").strip()
         if is_valid_email(email):
             session["email"] = email
+
+            # Read and update leaderboard
             entries_dict = {}
             if os.path.isfile(leaderboard_file):
                 with open(leaderboard_file, newline="", encoding="utf-8") as f:
                     for row in csv.DictReader(f):
                         try: entries_dict[row["email"]] = int(row["score"])
                         except: pass
+
             entries_dict[email] = max(entries_dict.get(email,0), score)
-            with open(leaderboard_file,"w",newline="",encoding="utf-8") as f:
+
+            # Write updated leaderboard
+            with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email","score"])
                 writer.writeheader()
                 for e,s in entries_dict.items(): writer.writerow({"email":e,"score":s})
+
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    entries=[]
-    user_email = session.get("email", "")
+    # Load leaderboard for display
+    entries_dict = {}
     if os.path.isfile(leaderboard_file):
         with open(leaderboard_file, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
-                try: score_val = int(row["score"])
+                try: entries_dict[row["email"]] = int(row["score"])
                 except: continue
-                entries.append({"email": row["email"].split("@")[0], "score": score_val, "full_email": row["email"]})
-    entries.sort(key=lambda x:x["score"], reverse=True)
 
+    entries = [{"email": e.split('@')[0], "score": s} for e,s in entries_dict.items()]
+    entries.sort(key=lambda x: x["score"], reverse=True)
+
+    user_email = session.get("email", "")
     return render_template("result.html", results=results, entries=entries, total_score=score, user_email=user_email, freeplay_unlocked=session.get("freeplay_unlocked", False))
 
+# ---------- Freeplay routes ----------
 @app.route("/freeplay")
 def freeplay():
     if not session.get("freeplay_unlocked"): return redirect(url_for("result"))
@@ -227,45 +253,25 @@ def freeplay_guess():
 
     distance_km = round(haversine(actual_lat, actual_lon, guessed_lat, guessed_lon),1)
     distance_mi = round(distance_km*0.621371,1)
-    if distance_km < 5: bar="📍🟩📍"
-    elif distance_km < 50: bar="📍🟨📍"
-    elif distance_km < 500: bar="📍🟧📍"
-    else: bar="📍🟥📍"
+    bar="📍🟥📍"
+    if distance_km<5: bar="📍🟩📍"
+    elif distance_km<50: bar="📍🟨📍"
+    elif distance_km<500: bar="📍🟧📍"
 
     share_image_url = generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, max(0,int(1000-distance_km)), distance_km)
     return render_template("freeplay_result.html", guessed_lat=guessed_lat, guessed_lon=guessed_lon, actual_lat=actual_lat, actual_lon=actual_lon, distance_km=distance_km, distance_mi=distance_mi, bar=bar, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
 
+# ---------- SEO ----------
 @app.route("/robots.txt")
 def robots_txt():
     return "User-Agent: *\nDisallow:\nSitemap: https://sightcr.com/sitemap.xml",200,{"Content-Type":"text/plain"}
 
 @app.route("/sitemap.xml")
 def sitemap():
-    static_routes=["index","result","leaderboard"]
+    static_routes=["index","result"]
     pages=[f"<url><loc>{url_for(r,_external=True)}</loc></url>" for r in static_routes]
     xml=f"<?xml version='1.0' encoding='UTF-8'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>{''.join(pages)}</urlset>"
     return xml,200,{"Content-Type":"application/xml"}
-
-@app.route("/leaderboard")
-def leaderboard():
-    today = datetime.date.today().isoformat()
-    PROJECT_DIR = os.path.dirname(__file__)
-    LEADERBOARD_DIR = os.path.join(PROJECT_DIR, "leaderboards")
-    filename = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
-
-    entries = []
-    user_email = session.get("email", "")
-
-    if os.path.isfile(filename):
-        with open(filename, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                try: score_val = int(row["score"])
-                except: continue
-                display_name = row["email"].split("@")[0] if "@" in row["email"] else row["email"]
-                entries.append({"email": display_name, "score": score_val, "full_email": row["email"]})
-
-    entries.sort(key=lambda x: x["score"], reverse=True)
-    return render_template("leaderboard.html", entries=entries, user_email=user_email)
 
 if __name__ == "__main__":
     port=int(os.environ.get("PORT",5010))
