@@ -199,32 +199,56 @@ def guess():
 
     return redirect(url_for("round_result"))
 
+
 @app.route("/round_result")
 def round_result():
     results = session.get("results", [])
-    if not results: return redirect(url_for("index"))
+    if not results:
+        return redirect(url_for("index"))
+
     last_result = results[-1]
     score = session.get("score", 0)
-    share_image_url = generate_share_image(last_result["actual_lat"], last_result["actual_lon"], last_result["guessed_lat"], last_result["guessed_lon"], last_result["round_score"], last_result["distance_km"])
-    return render_template("round_result.html", result=last_result, score=score, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
+    round_num = session.get("round", 1)  # <-- Add this
+
+    share_image_url = generate_share_image(
+        last_result["actual_lat"],
+        last_result["actual_lon"],
+        last_result["guessed_lat"],
+        last_result["guessed_lon"],
+        last_result["round_score"],
+        last_result["distance_km"]
+    )
+
+    return render_template(
+        "round_result.html",
+        result=last_result,
+        score=score,
+        round=round_num,  # <-- Pass it here
+        api_key=GOOGLE_API_KEY,
+        share_image_url=share_image_url
+    )
+
 
 @app.route("/result", methods=["GET","POST"])
 def result():
     results = session.get("results", [])
     score = session.get("score",0)
-    if not results: return redirect(url_for("index"))
+    if not results:
+        return redirect(url_for("index"))
 
     today = datetime.date.today().isoformat()
+    email = session.get("email", "")  # <-- Add this
 
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip()
-        if is_valid_email(email):
+        posted_email = (request.form.get("email") or "").strip()
+        if is_valid_email(posted_email):
+            email = posted_email
             session["email"] = email
 
             conn = get_db_connection()
             row = conn.execute(
                 "SELECT score FROM leaderboard WHERE date=? AND email=?",
-                (today,email)
+                (today, email)
             ).fetchone()
             existing_score = row["score"] if row else 0
 
@@ -248,8 +272,14 @@ def result():
 
     entries = [{"email": r["email"].split("@")[0], "score": r["score"]} for r in rows]
 
-    user_email = session.get("email", "")
-    return render_template("result.html", results=results, entries=entries, total_score=score, user_email=user_email, freeplay_unlocked=session.get("freeplay_unlocked", False))
+    return render_template(
+        "result.html",
+        results=results,
+        entries=entries,
+        total_score=score,
+        user_email=email,
+        freeplay_unlocked=session.get("freeplay_unlocked", False)
+    )
 
 # ---------- Freeplay routes ----------
 @app.route("/freeplay")
@@ -276,6 +306,11 @@ def freeplay_guess():
 
     share_image_url = generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, max(0,int(1000-distance_km)), distance_km)
     return render_template("freeplay_result.html", guessed_lat=guessed_lat, guessed_lon=guessed_lon, actual_lat=actual_lat, actual_lon=actual_lon, distance_km=distance_km, distance_mi=distance_mi, bar=bar, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
+
+@app.route("/reset_game")
+def reset_game():
+    session.clear()
+    return "Game session reset! Go back to / to start a new game."
 
 # ---------- SEO ----------
 @app.route("/robots.txt")
