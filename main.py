@@ -113,7 +113,7 @@ def safe_float(value, default=0.0):
 
 # ---------- SQLite leaderboard ----------
 PROJECT_DIR = os.path.dirname(__file__)
-DB_FILE = os.path.join(PROJECT_DIR, "leaderboard.db")
+DB_FILE = os.path.join(os.path.dirname(__file__), "leaderboard.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE)
@@ -133,6 +133,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Call this at the start
 init_db()
 
 # ---------- Flask hooks ----------
@@ -237,7 +238,7 @@ def result():
         return redirect(url_for("index"))
 
     today = datetime.date.today().isoformat()
-    email = session.get("email", "")  # <-- Add this
+    email = session.get("email", "")
 
     if request.method == "POST":
         posted_email = (request.form.get("email") or "").strip()
@@ -259,10 +260,11 @@ def result():
                 )
                 conn.commit()
             conn.close()
+
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    # Load leaderboard for display
+    # Load leaderboard for today
     conn = get_db_connection()
     rows = conn.execute(
         "SELECT email, score FROM leaderboard WHERE date=? ORDER BY score DESC",
