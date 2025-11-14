@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from flask_compress import Compress
 
 load_dotenv()
-
 app = Flask(__name__)
 Compress(app)
 
@@ -24,6 +23,29 @@ app.config.update(
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger("geoguesser")
 
+DB_FILE = os.path.join(os.path.dirname(__file__), "leaderboard.db")
+
+# ---------- Database helpers ----------
+def get_db():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS leaderboard (
+            date TEXT,
+            email TEXT,
+            score INTEGER,
+            PRIMARY KEY(date,email)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
 # ---------- Load locations ----------
 ALL_LOCATIONS = []
 try:
@@ -33,22 +55,17 @@ except Exception as e:
     logger.warning("Failed to load locations: %s", e)
 
 # ---------- Helpers ----------
-def is_us(loc):
-    return -125 <= loc["lon"] <= -66 and 24 <= loc["lat"] <= 50
-
-def is_europe(loc):
-    return -10 <= loc["lon"] <= 40 and 35 <= loc["lat"] <= 70
+def is_us(loc): return -125 <= loc["lon"] <= -66 and 24 <= loc["lat"] <= 50
+def is_europe(loc): return -10 <= loc["lon"] <= 40 and 35 <= loc["lat"] <= 70
 
 def get_daily_locations():
     today = datetime.date.today().isoformat()
     cache_file = os.path.join(os.path.dirname(__file__), f"daily_locations_{today}.json")
-
     if os.path.isfile(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
-            pass
+        except: pass
 
     us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
     europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
@@ -79,62 +96,32 @@ def haversine(lat1, lon1, lat2, lon2):
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+def safe_float(value, default=0.0):
+    try: return float(value)
+    except: return default
+
+EMAIL_RE = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
+def is_valid_email(email): return bool(email and EMAIL_RE.match(email))
 
 # ---------- Share image ----------
 SHARE_IMAGE_FOLDER = os.path.join(os.path.dirname(__file__), "static", "share_images")
 os.makedirs(SHARE_IMAGE_FOLDER, exist_ok=True)
 
 def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round_score, distance_km, filename=None):
-    if not GOOGLE_API_KEY:
-        return None
+    if not GOOGLE_API_KEY: return None
     if filename is None:
         filename = secure_filename(f"share_{actual_lat}_{actual_lon}_{guessed_lat}_{guessed_lon}.png")
     filepath = os.path.join(SHARE_IMAGE_FOLDER, filename)
-
     url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap&markers=color:red|label:A|{actual_lat},{actual_lon}&markers=color:blue|label:G|{guessed_lat},{guessed_lon}&key={GOOGLE_API_KEY}"
     try:
         resp = requests.get(url, timeout=6)
         resp.raise_for_status()
-        with open(filepath, "wb") as f:
-            f.write(resp.content)
+        with open(filepath, "wb") as f: f.write(resp.content)
     except:
         return None
-
     return "/" + os.path.relpath(filepath, start=os.path.dirname(__file__)).replace("\\", "/")
-
-# ---------- Validation ----------
-EMAIL_RE = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
-def is_valid_email(email): return bool(email and EMAIL_RE.match(email))
-def safe_float(value, default=0.0):
-    try: return float(value)
-    except: return default
-
-# ---------- SQLite leaderboard ----------
-PROJECT_DIR = os.path.dirname(__file__)
-DB_FILE = os.path.join(os.path.dirname(__file__), "leaderboard.db")
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db_connection()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS leaderboard (
-            date TEXT,
-            email TEXT,
-            score INTEGER,
-            PRIMARY KEY(date,email)
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-# Call this at the start
-init_db()
 
 # ---------- Flask hooks ----------
 @app.before_request
@@ -156,16 +143,12 @@ def setup_game():
 def index():
     round_num = session.get("round", 1)
     score = session.get("score", 0)
-
     if round_num > 5:
         return redirect(url_for("result"))
-
     loc = session["game_locations"][round_num-1]
     session.update({"actual_lat": loc.get("lat"), "actual_lon": loc.get("lon"), "heading": loc.get("heading",0)})
     show_instructions = not session.get("instructions_shown", False)
-
     share_image_url = url_for('static', filename='images/share_placeholder.png', _external=True)
-
     return render_template("index.html", lat=loc["lat"], lon=loc["lon"], heading=loc.get("heading",0), api_key=GOOGLE_API_KEY, round=round_num, score=score, show_instructions=show_instructions)
 
 @app.route("/guess", methods=["POST"])
@@ -174,8 +157,7 @@ def guess():
     guessed_lon = safe_float(request.form.get("lon"))
     actual_lat = session.get("actual_lat")
     actual_lon = session.get("actual_lon")
-    if actual_lat is None or actual_lon is None:
-        return redirect(url_for("index"))
+    if actual_lat is None or actual_lon is None: return redirect(url_for("index"))
 
     distance_km = haversine(actual_lat, actual_lon, guessed_lat, guessed_lon)
     round_score = max(0, int(1000 - distance_km))
@@ -197,79 +179,49 @@ def guess():
         "actual_lon": actual_lon
     })
     session["round"] += 1
-
     return redirect(url_for("round_result"))
-
 
 @app.route("/round_result")
 def round_result():
     results = session.get("results", [])
-    if not results:
-        return redirect(url_for("index"))
-
+    if not results: return redirect(url_for("index"))
     last_result = results[-1]
     score = session.get("score", 0)
-    round_num = session.get("round", 1)  # <-- Add this
-
+    round_num = session.get("round", 1)
     share_image_url = generate_share_image(
-        last_result["actual_lat"],
-        last_result["actual_lon"],
-        last_result["guessed_lat"],
-        last_result["guessed_lon"],
-        last_result["round_score"],
-        last_result["distance_km"]
+        last_result["actual_lat"], last_result["actual_lon"],
+        last_result["guessed_lat"], last_result["guessed_lon"],
+        last_result["round_score"], last_result["distance_km"]
     )
+    return render_template("round_result.html", result=last_result, score=score, round=round_num, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
 
-    return render_template(
-        "round_result.html",
-        result=last_result,
-        score=score,
-        round=round_num,  # <-- Pass it here
-        api_key=GOOGLE_API_KEY,
-        share_image_url=share_image_url
-    )
-
-
+# ---------- Result & Leaderboard ----------
 @app.route("/result", methods=["GET","POST"])
 def result():
     results = session.get("results", [])
-    score = session.get("score",0)
-    if not results:
-        return redirect(url_for("index"))
+    if not results: return redirect(url_for("index"))
 
     today = datetime.date.today().isoformat()
-    email = session.get("email", "")
 
     if request.method == "POST":
         posted_email = (request.form.get("email") or "").strip()
         if is_valid_email(posted_email):
             email = posted_email
             session["email"] = email
-
-            conn = get_db_connection()
-            row = conn.execute(
-                "SELECT score FROM leaderboard WHERE date=? AND email=?",
-                (today, email)
-            ).fetchone()
-            existing_score = row["score"] if row else 0
-
-            if score > existing_score:
-                conn.execute(
-                    "INSERT OR REPLACE INTO leaderboard(date,email,score) VALUES(?,?,?)",
-                    (today,email,score)
-                )
-                conn.commit()
+            conn = get_db()
+            conn.execute("""
+                INSERT INTO leaderboard(date,email,score)
+                VALUES (?,?,?)
+                ON CONFLICT(date,email) DO UPDATE SET score=MAX(score,excluded.score)
+            """, (today, email, session.get("score",0)))
+            conn.commit()
             conn.close()
-
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    # Load leaderboard for today
-    conn = get_db_connection()
-    rows = conn.execute(
-        "SELECT email, score FROM leaderboard WHERE date=? ORDER BY score DESC",
-        (today,)
-    ).fetchall()
+    email = session.get("email", "")
+    conn = get_db()
+    rows = conn.execute("SELECT email, score FROM leaderboard WHERE date=? ORDER BY score DESC", (today,)).fetchall()
     conn.close()
 
     entries = [{"email": r["email"].split("@")[0], "score": r["score"]} for r in rows]
@@ -278,7 +230,7 @@ def result():
         "result.html",
         results=results,
         entries=entries,
-        total_score=score,
+        total_score=session.get("score",0),
         user_email=email,
         freeplay_unlocked=session.get("freeplay_unlocked", False)
     )
@@ -309,10 +261,15 @@ def freeplay_guess():
     share_image_url = generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, max(0,int(1000-distance_km)), distance_km)
     return render_template("freeplay_result.html", guessed_lat=guessed_lat, guessed_lon=guessed_lon, actual_lat=actual_lat, actual_lon=actual_lon, distance_km=distance_km, distance_mi=distance_mi, bar=bar, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
 
-@app.route("/reset_game")
-def reset_game():
+# ---------- Reset route for testing ----------
+@app.route("/reset")
+def reset():
     session.clear()
-    return "Game session reset! Go back to / to start a new game."
+    conn = get_db()
+    conn.execute("DELETE FROM leaderboard WHERE date=?", (datetime.date.today().isoformat(),))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("index"))
 
 # ---------- SEO ----------
 @app.route("/robots.txt")
@@ -326,6 +283,7 @@ def sitemap():
     xml=f"<?xml version='1.0' encoding='UTF-8'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>{''.join(pages)}</urlset>"
     return xml,200,{"Content-Type":"application/xml"}
 
+# ---------- Run ----------
 if __name__ == "__main__":
     port=int(os.environ.get("PORT",5010))
     app.run(host="0.0.0.0", port=port, debug=DEBUG)

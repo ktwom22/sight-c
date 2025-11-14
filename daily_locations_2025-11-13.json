@@ -1,0 +1,37 @@
+[
+  {
+    "lat": 35.899732,
+    "lon": 14.514711,
+    "heading": 242,
+    "region": "Europe",
+    "type": "outdoor"
+  },
+  {
+    "lat": 45.800007,
+    "lon": 15.999995,
+    "heading": 341,
+    "region": "Europe",
+    "type": "outdoor"
+  },
+  {
+    "lat": 32.081937,
+    "lon": 34.768066,
+    "heading": 149,
+    "region": "Other",
+    "type": "outdoor"
+  },
+  {
+    "lat": 64.143459,
+    "lon": -21.936546,
+    "heading": 201,
+    "region": "Other",
+    "type": "outdoor"
+  },
+  {
+    "lat": 35.166677,
+    "lon": 33.366635,
+    "heading": 101,
+    "region": "Europe",
+    "type": "outdoor"
+  }
+]
