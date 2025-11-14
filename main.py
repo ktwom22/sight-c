@@ -222,37 +222,49 @@ def round_result():
 
 @app.route("/result", methods=["GET", "POST"])
 def result():
-    results, score = session.get("results", []), session.get("score", 0)
-    if not results: return redirect(url_for("index"))
+    results = session.get("results", [])
+    score = session.get("score", 0)
+    if not results:
+        return redirect(url_for("index"))
+
+    # ---------- Leaderboard Setup ----------
     PROJECT_DIR = os.path.dirname(__file__)
     LEADERBOARD_DIR = os.path.join(PROJECT_DIR, "leaderboards")
     os.makedirs(LEADERBOARD_DIR, exist_ok=True)
     today = datetime.date.today().isoformat()
     leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
 
-    # Handle email submission
+    # Handle POST: email submission
     if request.method == "POST":
         email = (request.form.get("email") or "").strip()
-        if is_valid_email(email):
+        if email and "@" in email:
             session["email"] = email
             entries_dict = {}
+
+            # Read existing leaderboard
             if os.path.isfile(leaderboard_file):
                 with open(leaderboard_file, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         try:
                             entries_dict[row["email"]] = int(row["score"])
-                        except:
+                        except Exception:
                             continue
+
+            # Update the user's best score
             entries_dict[email] = max(entries_dict.get(email, 0), score)
+
+            # Write updated leaderboard
             with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
-                for e, s in entries_dict.items(): writer.writerow({"email": e, "score": s})
+                for e, s in entries_dict.items():
+                    writer.writerow({"email": e, "score": s})
+
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    # Load leaderboard
+    # ---------- Load leaderboard for display ----------
     entries = []
     user_email = session.get("email") or ""
     if os.path.isfile(leaderboard_file):
@@ -261,20 +273,32 @@ def result():
             for row in reader:
                 try:
                     score_val = int(row["score"])
-                except:
+                except Exception:
                     continue
                 display_name = row["email"].split("@")[0] if "@" in row["email"] else row["email"]
-                entries.append({"email": display_name, "score": score_val})
+                entries.append({"email": display_name, "score": score_val, "full_email": row["email"]})
+
+    # Sort descending by score
     entries.sort(key=lambda x: x["score"], reverse=True)
 
+    # ---------- Share text ----------
+    share_lines = ["🌎 GeoGuesser Results"]
+    for r in results:
+        share_lines.append(r.get("bar", "📍❔📍"))
+    share_lines.append(f"🏁 Total Score: {score}")
+    share_text = "\n".join(share_lines)
+
+    # ---------- Render ----------
     return render_template(
         "result.html",
         results=results,
-        entries=entries,  # the leaderboard entries list
+        entries=entries,               # ✅ Pass leaderboard to template
         total_score=score,
         user_email=user_email,
+        share_text=share_text,
         freeplay_unlocked=session.get("freeplay_unlocked", False)
     )
+
 
 
 @app.route("/leaderboard")
