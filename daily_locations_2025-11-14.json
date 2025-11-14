@@ -1,37 +1,37 @@
 [
   {
-    "lat": 51.501941,
-    "lon": -0.118668,
-    "heading": 292,
-    "region": "Europe",
+    "lat": 23.133905,
+    "lon": -82.366128,
+    "heading": 328,
+    "region": "Other",
     "type": "outdoor"
   },
   {
-    "lat": 52.080037,
-    "lon": 4.269961,
-    "heading": 218,
-    "region": "Europe",
-    "type": "outdoor"
-  },
-  {
-    "lat": 49.61166,
-    "lon": 6.130003,
-    "heading": 126,
-    "region": "Europe",
-    "type": "outdoor"
-  },
-  {
-    "lat": 41.847961,
-    "lon": -87.635237,
-    "heading": 24,
+    "lat": 29.741273,
+    "lon": -95.348436,
+    "heading": 85,
     "region": "US",
     "type": "outdoor"
   },
   {
-    "lat": 41.327541,
-    "lon": 19.818883,
-    "heading": 181,
-    "region": "Europe",
+    "lat": 33.739457,
+    "lon": -84.367642,
+    "heading": 231,
+    "region": "US",
+    "type": "outdoor"
+  },
+  {
+    "lat": 6.801974,
+    "lon": -58.167029,
+    "heading": 143,
+    "region": "Other",
+    "type": "outdoor"
+  },
+  {
+    "lat": 25.789557,
+    "lon": -80.226052,
+    "heading": 154,
+    "region": "US",
     "type": "outdoor"
   }
 ]

@@ -10,6 +10,7 @@
 
   gtag('config', 'G-8WQ2J22B9Z');
 </script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -102,7 +103,16 @@ body {
 <div class="main-container">
     <header>
         <h1>🌍 SightCR - Street View Guessing Game</h1>
-        <p>Round {{ round }} | Score: {{ score }}</p>
+    <p>Round {{ round }} | Score: {{ score }}</p>
+
+    {% if session.get('email') == 'admin@sightcr.com' %}
+        <p>
+            <a href="/force_new_locations"
+               style="color:red; font-weight:bold; text-decoration:none;">
+               🔧 Force New Locations
+            </a>
+        </p>
+    {% endif %}
     </header>
 
     <div id="street-view" aria-label="Google Street View"></div>
