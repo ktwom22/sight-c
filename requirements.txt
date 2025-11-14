@@ -4,3 +4,5 @@ gunicorn
 Flask_session
 requests
 geopandas
+dotenv
+werkzeug
