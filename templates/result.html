@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-8WQ2J22B9Z');
+  </script>
 
-  gtag('config', 'G-8WQ2J22B9Z');
-</script>
   <meta charset="utf-8">
-  <title>🎯 SightCr Results</title>
+  <title>🎯 GeoGuesser Results</title>
   <style>
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -23,8 +23,6 @@
     }
 
     h1 { font-size: 1.8em; margin-bottom: 15px; }
-    h2 { font-size: 1.1em; margin: 15px 0 8px; color: #555; }
-
     .result-box {
       background: #fff;
       max-width: 400px;
@@ -38,7 +36,7 @@
     .round-bars { font-size: 1.3em; margin-bottom: 10px; line-height: 1.5; }
     .note { font-size: 0.85em; color: #777; margin-bottom: 12px; }
 
-    .copy-btn, .submit-btn, .freeplay-btn {
+    .copy-btn, .submit-btn, .freeplay-btn, .leaderboard-btn {
       margin-top: 10px;
       padding: 8px 20px;
       border-radius: 6px;
@@ -50,12 +48,12 @@
 
     .copy-btn { background: #3498db; color: #fff; }
     .copy-btn:hover { background: #2980b9; }
-
     .submit-btn { background: #1abc9c; color: #fff; }
     .submit-btn:hover { background: #16a085; }
-
     .freeplay-btn { background: #27ae60; color: #fff; }
     .freeplay-btn:hover { background: #1e8449; }
+    .leaderboard-btn { background: #f39c12; color: #fff; }
+    .leaderboard-btn:hover { background: #d35400; }
 
     input[type="email"] {
       padding: 6px;
@@ -63,17 +61,6 @@
       border-radius: 6px;
       border: 1px solid #ccc;
       font-size: 0.95em;
-    }
-
-    /* Podium icon */
-    #leaderboard-icon {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      cursor: pointer;
-      z-index: 1000;
-      font-size: 2em;
     }
 
     /* Leaderboard modal */
@@ -92,7 +79,7 @@
       background:#fff;
       padding:20px;
       border-radius:12px;
-      max-width:350px;
+      max-width:400px;
       width:90%;
       text-align:center;
       box-shadow:0 4px 12px rgba(0,0,0,0.2);
@@ -135,9 +122,6 @@
 
   <h1>🏁 Your Results</h1>
 
-  <!-- Podium icon -->
-  <div id="leaderboard-icon" title="Top Players" onclick="openLeaderboard()">🏆</div>
-
   <div class="result-box">
     <div class="score">Total Score: {{ score }}</div>
 
@@ -160,6 +144,7 @@
         </div>
       {% elif freeplay_unlocked %}
         <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
+        <button class="leaderboard-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
       {% endif %}
     </div>
 
@@ -192,9 +177,9 @@
     <div class="modal-content">
       <h2>🏆 Top Players</h2>
       <table>
-        <tr><th>Email</th><th>Score</th></tr>
-        {% for e in entries[:5] %}
-          <tr {% if e.email == user_email %}class="highlight"{% endif %}>
+        <tr><th>Player</th><th>Score</th></tr>
+        {% for e in entries[:10] %}
+          <tr {% if e.full_email==user_email %}class="highlight"{% endif %}>
             <td>{{ e.email }}</td>
             <td>{{ e.score }}</td>
           </tr>
@@ -221,11 +206,13 @@
         body: `email=${encodeURIComponent(email)}`
       })
       .then(res => {
-        if (res.ok) {
+        if (res.ok || res.status === 302) {
           document.getElementById('action-section').innerHTML = `
             <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
+            <button class="leaderboard-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
           `;
           alert("✅ Email submitted! Free Play unlocked.");
+          openLeaderboard(); // automatically show leaderboard
         } else { alert("❌ Error submitting email."); }
       });
     }
@@ -237,6 +224,11 @@
       const modal = document.getElementById('leaderboard-modal');
       if (event.target == modal) modal.style.display = 'none';
     }
+
+    // Auto open leaderboard if user already submitted email
+    {% if user_email %}
+      openLeaderboard();
+    {% endif %}
   </script>
 
 </body>
