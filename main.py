@@ -56,12 +56,11 @@ def deterministic_choice(seed, seq, k=1):
     return [rnd.choice(seq) for _ in range(k)]
 
 def get_daily_locations():
-    """Return 5 deterministic locations weighted for Europe/US.
-       Cache to daily_locations_YYYY-MM-DD.json so changes to ALL_LOCATIONS mid-day won't affect fairness.
-    """
+    """Return 5 deterministic locations for today (same for all users)."""
     today = datetime.date.today().isoformat()
     cache_file = os.path.join(os.path.dirname(__file__), f"daily_locations_{today}.json")
 
+    # Use cached file if it exists
     if os.path.isfile(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
@@ -69,31 +68,24 @@ def get_daily_locations():
         except Exception as e:
             logger.warning("Failed reading daily cache, regenerating: %s", e)
 
-    # generate deterministically
     us_locations = [loc for loc in ALL_LOCATIONS if is_us(loc)]
     europe_locations = [loc for loc in ALL_LOCATIONS if is_europe(loc)]
     other_locations = [loc for loc in ALL_LOCATIONS if loc not in us_locations + europe_locations]
 
     chosen = []
-    # create an RNG seeded by date so all users see same sequence
-    seed = today
-    for i in range(5):
-        r = deterministic_choice(seed + f"-{i}-r", [0, 1, 2])[0] if False else None
-        # Instead of trying to emulate the previous random thresholds exactly, use deterministic RNG:
-        rnd = random.Random(f"{seed}-{i}")
-        p = rnd.random()
-        if p < 0.5 and europe_locations:
-            chosen.append(rnd.choice(europe_locations))
-        elif p < 0.8 and us_locations:
-            chosen.append(rnd.choice(us_locations))
-        elif other_locations:
-            chosen.append(rnd.choice(other_locations))
-        else:
-            # fallback to any available location
-            pool = europe_locations + us_locations + other_locations
-            if pool:
-                chosen.append(rnd.choice(pool))
+    rng = random.Random(today)  # seed by date for determinism
 
+    for _ in range(5):
+        p = rng.random()
+        if p < 0.5 and europe_locations:
+            chosen.append(rng.choice(europe_locations))
+        elif p < 0.8 and us_locations:
+            chosen.append(rng.choice(us_locations))
+        elif other_locations:
+            chosen.append(rng.choice(other_locations))
+        # else skip this iteration if no locations available for the category
+
+    # save cache for the day
     try:
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(chosen, f, ensure_ascii=False, indent=2)
@@ -101,6 +93,7 @@ def get_daily_locations():
         logger.warning("Failed to write daily cache: %s", e)
 
     return chosen
+
 
 def haversine(lat1, lon1, lat2, lon2):
     """Distance in km between two lat/lon points"""
