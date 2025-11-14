@@ -1,6 +1,6 @@
 # main.py
 from flask import Flask, render_template, request, session, redirect, url_for
-import random, math, os, json, datetime, requests, logging, re, sqlite3
+import random, math, os, json, datetime, requests, logging, re, sqlite3,csv
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask_compress import Compress
@@ -199,47 +199,61 @@ def round_result():
 @app.route("/result", methods=["GET","POST"])
 def result():
     results = session.get("results", [])
-    if not results: return redirect(url_for("index"))
+    score = session.get("score", 0)
+    if not results:
+        return redirect(url_for("index"))
 
+    # Folder for daily leaderboards
+    LEADERBOARD_DIR = os.path.join(os.path.dirname(__file__), "leaderboards")
+    os.makedirs(LEADERBOARD_DIR, exist_ok=True)
     today = datetime.date.today().isoformat()
+    leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
 
     if request.method == "POST":
-        posted_email = (request.form.get("email") or "").strip()
-        if is_valid_email(posted_email):
-            email = posted_email
+        email = (request.form.get("email") or "").strip()
+        if is_valid_email(email):
             session["email"] = email
-            conn = get_db()
-            # Try insert first
-            try:
-                conn.execute("INSERT INTO leaderboard(date,email,score) VALUES (?,?,?)",
-                             (today, email, session.get("score", 0)))
-            except sqlite3.IntegrityError:
-                # Already exists, update only if new score is higher
-                conn.execute("""
-                    UPDATE leaderboard
-                    SET score=?
-                    WHERE date=? AND email=? AND score<?
-                """, (session.get("score", 0), today, email, session.get("score", 0)))
-            conn.commit()
-            conn.close()
+
+            # Read existing leaderboard
+            entries_dict = {}
+            if os.path.isfile(leaderboard_file):
+                with open(leaderboard_file, newline="", encoding="utf-8") as f:
+                    for row in csv.DictReader(f):
+                        try:
+                            entries_dict[row["email"]] = int(row["score"])
+                        except:
+                            pass
+
+            # Update with new score if higher
+            entries_dict[email] = max(entries_dict.get(email, 0), score)
+
+            # Write leaderboard back
+            with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=["email", "score"])
+                writer.writeheader()
+                for e, s in entries_dict.items():
+                    writer.writerow({"email": e, "score": s})
+
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    email = session.get("email", "")
-    conn = get_db()
-    rows = conn.execute("SELECT email, score FROM leaderboard WHERE date=? ORDER BY score DESC", (today,)).fetchall()
-    conn.close()
+    # Load leaderboard for display
+    entries_dict = {}
+    if os.path.isfile(leaderboard_file):
+        with open(leaderboard_file, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                try:
+                    entries_dict[row["email"]] = int(row["score"])
+                except:
+                    continue
 
-    entries = [{"email": r["email"].split("@")[0], "score": r["score"]} for r in rows]
+    entries = [{"email": e.split("@")[0], "score": s} for e, s in entries_dict.items()]
+    entries.sort(key=lambda x: x["score"], reverse=True)
 
-    return render_template(
-        "result.html",
-        results=results,
-        entries=entries,
-        total_score=session.get("score",0),
-        user_email=email,
-        freeplay_unlocked=session.get("freeplay_unlocked", False)
-    )
+    user_email = session.get("email", "")
+    return render_template("result.html", results=results, entries=entries,
+                           total_score=score, user_email=user_email,
+                           freeplay_unlocked=session.get("freeplay_unlocked", False))
 
 # ---------- Freeplay routes ----------
 @app.route("/freeplay")
