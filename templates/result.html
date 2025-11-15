@@ -11,13 +11,14 @@
   gtag('config', 'G-8WQ2J22B9Z');
 </script>
   <meta charset="utf-8">
-  <title>🎯 GeoGuesser Results</title>
+  <title>🎯 SightCR Results</title>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; text-align: center; margin: 0; padding: 20px; }
     h1 { font-size: 1.8em; margin-bottom: 15px; }
     .result-box { background: #fff; max-width: 400px; margin: 0 auto 20px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .score { font-size: 1.5em; font-weight: 600; margin-bottom: 12px; }
     .round-bars { font-size: 1.3em; margin-bottom: 10px; line-height: 1.5; }
+    .note { font-size: 0.85em; color: #777; margin-bottom: 12px; }
     .copy-btn, .submit-btn, .freeplay-btn, .leaderboard-btn { margin-top: 10px; padding: 8px 20px; border-radius: 6px; font-size: 0.95em; cursor: pointer; border: none; font-weight: 500; }
     .copy-btn { background: #3498db; color: #fff; }
     .copy-btn:hover { background: #2980b9; }
@@ -84,13 +85,13 @@
     <button onclick="document.getElementById('leaderboard').style.display='none';">Close</button>
   </div>
 
-
   <textarea id="share-text" style="display:none;">
-🌎 GeoGuesser Results
+🌎 SightCR Results
+Total Score: {{ total_score }}
+Check it out: https://sightcr.com
 {% for r in results %}
 {{ r.bar }}
 {% endfor %}
-🏁 Total Score: {{ total_score }}
   </textarea>
 
 <script>
