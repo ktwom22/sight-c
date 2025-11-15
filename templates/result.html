@@ -15,29 +15,61 @@ gtag('config', 'G-8WQ2J22B9Z');
 </script>
 
 <style>
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; text-align: center; margin:0; padding:20px; }
-h1 { font-size: 1.8em; margin-bottom: 15px; }
-.result-box { background: #fff; max-width: 600px; margin: 0 auto 20px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.score { font-size: 1.5em; font-weight: 600; margin-bottom: 12px; }
-.round-bars { font-size: 1.3em; margin-bottom: 10px; line-height: 1.5; }
-.note { font-size: 0.85em; color: #777; margin-bottom: 12px; }
-.copy-btn, .submit-btn, .freeplay-btn, .leaderboard-btn { margin-top: 10px; padding: 8px 20px; border-radius: 6px; font-size: 0.95em; cursor: pointer; border: none; font-weight: 500; }
-.copy-btn { background: #3498db; color: #fff; }
-.copy-btn:hover { background: #2980b9; }
-.submit-btn { background: #1abc9c; color: #fff; }
-.submit-btn:hover { background: #16a085; }
-.freeplay-btn { background: #27ae60; color: #fff; }
-.freeplay-btn:hover { background: #1e8449; }
-.leaderboard-btn { background: #f39c12; color: #fff; }
-.leaderboard-btn:hover { background: #d35400; }
-input[type="email"] { padding: 6px; width: 65%; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95em; }
-.prompt { font-size: 0.9em; color: #555; margin-top: 8px; }
-#leaderboard { background: #fff; max-width: 600px; margin: 20px auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: none; }
-#leaderboard table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-#leaderboard th, #leaderboard td { padding: 6px 8px; font-size: 0.9em; }
-#leaderboard th { background: #3498db; color: #fff; border-radius: 6px; }
-#leaderboard tr.highlight { background: #d1f2eb; font-weight: 600; }
-#result-map { width: 100%; max-width: 600px; height: 350px; margin: 20px auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #333; text-align: center; margin:0; padding:20px; }
+h1 { font-size: 2em; margin-bottom: 20px; color: #2c3e50; }
+
+/* Card */
+.result-box {
+  background: #fff; max-width: 650px; margin: 0 auto 20px; padding: 25px; border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1); position: relative;
+  overflow: hidden;
+}
+
+/* Animated score bubble */
+.score {
+  font-size: 2em; font-weight: 700; margin-bottom: 15px;
+  display: inline-block; padding: 15px 25px; border-radius: 50%;
+  background: linear-gradient(135deg,#1abc9c,#16a085); color: #fff;
+  animation: bounce 1s ease-out;
+}
+@keyframes bounce {
+  0% { transform: scale(0.3); }
+  50% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Distance bars */
+.round-bars { margin: 15px 0; }
+.distance-bar { height: 20px; border-radius: 12px; margin: 10px 0; position: relative; overflow: hidden; }
+.distance-bar span { display: block; height: 100%; text-align: right; padding-right: 8px; line-height: 20px; font-weight: 600; color:#fff; transition: width 1s ease; }
+.distance-bar.green span { background-color:#2ecc71; width: 80%; }
+.distance-bar.yellow span { background-color:#f1c40f; width: 60%; }
+.distance-bar.orange span { background-color:#e67e22; width: 40%; }
+.distance-bar.red span { background-color:#e74c3c; width: 20%; }
+
+/* Confetti container */
+#confetti { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
+
+/* Buttons */
+button { margin: 10px 5px; padding: 10px 25px; border-radius: 8px; border:none; font-weight:600; cursor:pointer; font-size:0.95em; transition:0.3s; }
+.copy-btn { background:#3498db; color:#fff; }
+.copy-btn:hover { background:#2980b9; }
+.submit-btn { background:#1abc9c; color:#fff; }
+.submit-btn:hover { background:#16a085; }
+.freeplay-btn { background:#27ae60; color:#fff; }
+.freeplay-btn:hover { background:#1e8449; }
+.leaderboard-btn { background:#f39c12; color:#fff; }
+.leaderboard-btn:hover { background:#d35400; }
+
+/* Map */
+#result-map { width: 100%; max-width: 650px; height: 400px; margin: 20px auto; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+#leaderboard { background:#fff; max-width:650px; margin:20px auto; padding:20px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,0.1); display:none; }
+#leaderboard table { width:100%; border-collapse:collapse; margin-top:10px; }
+#leaderboard th, #leaderboard td { padding:8px 12px; font-size:0.9em; }
+#leaderboard th { background:#3498db; color:#fff; border-radius:6px; }
+#leaderboard tr.highlight { background:#d1f2eb; font-weight:600; }
+
 </style>
 </head>
 <body>
@@ -45,15 +77,15 @@ input[type="email"] { padding: 6px; width: 65%; border-radius: 6px; border: 1px 
 <h1>🏁 Your Results</h1>
 
 <div class="result-box">
-    <div class="score">Total Score: {{ score }}</div>
+    <div class="score">{{ score }}</div>
 
     <div class="round-bars">
       {% for r in results %}
-        {{ r.bar }} ({{ r.distance_km }} km)<br>
+        <div class="distance-bar {% if r.distance_km < 50 %}green{% elif r.distance_km < 250 %}yellow{% elif r.distance_km < 500 %}orange{% else %}red{% endif %}">
+          <span>{{ r.bar }} {{ r.distance_km }} km</span>
+        </div>
       {% endfor %}
     </div>
-
-    <div class="note">Distance bars show how close your guesses were each round.</div>
 
     <!-- Google Map -->
     <div id="result-map"></div>
@@ -63,9 +95,8 @@ input[type="email"] { padding: 6px; width: 65%; border-radius: 6px; border: 1px 
     <div id="action-section">
       {% if not user_email %}
         <form method="POST" action="{{ url_for('result') }}">
-          <div class="prompt">Want to unlock Free Play? Submit your score!</div>
           <input type="email" name="email" placeholder="Enter your email" required>
-          <button type="submit" class="submit-btn">Submit</button>
+          <button type="submit" class="submit-btn">Submit Score</button>
         </form>
       {% elif freeplay_unlocked %}
         <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
@@ -93,29 +124,34 @@ input[type="email"] { padding: 6px; width: 65%; border-radius: 6px; border: 1px 
   <button onclick="document.getElementById('leaderboard').style.display='none';">Close</button>
 </div>
 
+<!-- Hidden share text -->
 <textarea id="share-text" style="display:none;">
 🌎 SightCR Results
 Total Score: {{ score }}
-Check it out: https://sightcr.com
 {% for r in results %}
 {{ r.bar }} ({{ r.distance_km }} km)
 {% endfor %}
 </textarea>
 
+<!-- Confetti -->
+<canvas id="confetti"></canvas>
+
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&callback=initResultMap" async defer></script>
+
 <script>
+// Copy to clipboard
 function copyShare() {
     const shareText = document.getElementById('share-text').value;
-    navigator.clipboard.writeText(shareText).then(() => { alert("✅ Results copied to clipboard!"); });
+    navigator.clipboard.writeText(shareText).then(() => { alert("✅ Results copied!"); });
 }
 
-// Auto-show leaderboard if email already submitted
+// Auto-show leaderboard
 {% if user_email %}
-  document.getElementById('leaderboard').style.display = 'block';
+document.getElementById('leaderboard').style.display = 'block';
 {% endif %}
 
-// Initialize Google Map
+// Initialize map with drop animation
 function initResultMap() {
   {% if results and results[0] %}
     const actualLat = {{ results[0].actual_lat }};
@@ -124,12 +160,19 @@ function initResultMap() {
     const guessedLng = {{ results[0].guessed_lon }};
 
     const map = new google.maps.Map(document.getElementById('result-map'), {
-      center: {lat: (actualLat + guessedLat)/2, lng: (actualLng + guessedLng)/2},
-      zoom: 3
+      center: {lat:(actualLat+guessedLat)/2, lng:(actualLng+guessedLng)/2},
+      zoom:3
     });
 
-    new google.maps.Marker({position:{lat:actualLat,lng:actualLng}, map, label:"A", title:"Actual Location"});
-    new google.maps.Marker({position:{lat:guessedLat,lng:guessedLng}, map, label:"G", title:"Your Guess"});
+    const actualMarker = new google.maps.Marker({
+      position:{lat:actualLat, lng:actualLng},
+      map, label:"A", title:"Actual Location", animation:google.maps.Animation.DROP
+    });
+
+    const guessedMarker = new google.maps.Marker({
+      position:{lat:guessedLat, lng:guessedLng},
+      map, label:"G", title:"Your Guess", animation:google.maps.Animation.DROP
+    });
 
     new google.maps.Polyline({
       path:[{lat:actualLat,lng:actualLng},{lat:guessedLat,lng:guessedLng}],
@@ -137,7 +180,7 @@ function initResultMap() {
       strokeColor:'#FF0000',
       strokeOpacity:0.8,
       strokeWeight:2,
-      map:map
+      map
     });
 
     const bounds = new google.maps.LatLngBounds();
@@ -146,6 +189,36 @@ function initResultMap() {
     map.fitBounds(bounds);
   {% endif %}
 }
+
+// Simple confetti
+function launchConfetti() {
+  const confetti = document.getElementById('confetti');
+  const ctx = confetti.getContext('2d');
+  confetti.width = window.innerWidth;
+  confetti.height = window.innerHeight;
+  const pieces = [];
+  for(let i=0;i<100;i++) {
+    pieces.push({x:Math.random()*confetti.width, y:Math.random()*confetti.height, r:Math.random()*6+4, dx:(Math.random()-0.5)*4, dy:Math.random()*4+1, color:`hsl(${Math.random()*360},100%,50%)`});
+  }
+  function animate() {
+    ctx.clearRect(0,0,confetti.width,confetti.height);
+    for(let p of pieces){
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.color;
+      ctx.fill();
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.y>confetti.height){p.y=0; p.x=Math.random()*confetti.width;}
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// Launch confetti if score > 500
+{% if score > 500 %}
+launchConfetti();
+{% endif %}
 </script>
 </body>
 </html>
