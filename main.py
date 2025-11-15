@@ -153,12 +153,13 @@ def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round
 @app.before_request
 def setup_game():
     today = datetime.date.today().isoformat()
+    # Only initialize a new game if session is empty or last played date is not today
     if session.get("last_played_date") != today:
         session.clear()
         session.update({
-            "score":0,
-            "round":1,
-            "results":[],
+            "score": 0,
+            "round": 1,
+            "results": [],
             "game_locations": get_daily_locations(),
             "instructions_shown": False,
             "last_played_date": today
@@ -167,15 +168,35 @@ def setup_game():
 # ---------- Routes ----------
 @app.route("/")
 def index():
-    round_num = session.get("round", 1)
+    results = session.get("results", [])
     score = session.get("score", 0)
-    if round_num > 4:
+
+    # If user already completed all rounds today, send to result page
+    if len(results) >= 3:
         return redirect(url_for("result"))
+
+    round_num = session.get("round", 1)
     loc = session["game_locations"][round_num-1]
-    session.update({"actual_lat": loc.get("lat"), "actual_lon": loc.get("lon"), "heading": loc.get("heading",0)})
+    session.update({
+        "actual_lat": loc.get("lat"),
+        "actual_lon": loc.get("lon"),
+        "heading": loc.get("heading", 0)
+    })
+
     show_instructions = not session.get("instructions_shown", False)
     share_image_url = url_for('static', filename='images/share_placeholder.png', _external=True)
-    return render_template("index.html", lat=loc["lat"], lon=loc["lon"], heading=loc.get("heading",0), api_key=GOOGLE_API_KEY, round=round_num, score=score, show_instructions=show_instructions)
+
+    return render_template(
+        "index.html",
+        lat=loc["lat"],
+        lon=loc["lon"],
+        heading=loc.get("heading", 0),
+        api_key=GOOGLE_API_KEY,
+        round=round_num,
+        score=score,
+        show_instructions=show_instructions
+    )
+
 
 @app.route("/guess", methods=["POST"])
 def guess():
