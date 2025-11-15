@@ -11,7 +11,8 @@ Compress(app)
 
 # ---------- CONFIG ----------
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+print("Loaded API key:", GOOGLE_API_KEY)  # for debugging
 DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
 
 app.config.update(
@@ -153,38 +154,33 @@ def generate_share_image(actual_lat, actual_lon, guessed_lat, guessed_lon, round
 @app.before_request
 def setup_game():
     today = datetime.date.today().isoformat()
-    # Only initialize a new game if session is empty or last played date is not today
+    # If session is new or they haven't played today
     if session.get("last_played_date") != today:
         session.clear()
         session.update({
             "score": 0,
-            "round": 1,
+            "round": 1,  # only 1 round
             "results": [],
-            "game_locations": get_daily_locations(),
+            "game_locations": get_daily_locations()[:1],  # just 1 location
             "instructions_shown": False,
             "last_played_date": today
         })
 
+
 # ---------- Routes ----------
 @app.route("/")
 def index():
-    results = session.get("results", [])
-    score = session.get("score", 0)
-
-    # If user already completed all rounds today, send to result page
-    if len(results) >= 3:
+    # If they already played today, go straight to results
+    if session.get("results"):
         return redirect(url_for("result"))
 
-    round_num = session.get("round", 1)
-    loc = session["game_locations"][round_num-1]
+    loc = session["game_locations"][0]  # only one round
     session.update({
         "actual_lat": loc.get("lat"),
         "actual_lon": loc.get("lon"),
         "heading": loc.get("heading", 0)
     })
-
     show_instructions = not session.get("instructions_shown", False)
-    share_image_url = url_for('static', filename='images/share_placeholder.png', _external=True)
 
     return render_template(
         "index.html",
@@ -192,10 +188,11 @@ def index():
         lon=loc["lon"],
         heading=loc.get("heading", 0),
         api_key=GOOGLE_API_KEY,
-        round=round_num,
-        score=score,
+        round=1,
+        score=session.get("score",0),
         show_instructions=show_instructions
     )
+
 
 
 @app.route("/guess", methods=["POST"])
@@ -208,9 +205,6 @@ def guess():
         return redirect(url_for("index"))
 
     distance_km = haversine(actual_lat, actual_lon, guessed_lat, guessed_lon)
-    distance_km_rounded = round(distance_km, 1)
-    distance_mi = round(distance_km * 0.621371, 1)
-
     round_score = max(0, int(1000 - distance_km))
 
     session["score"] += round_score
@@ -224,10 +218,10 @@ def guess():
         bar = "📍🟧📍"
 
     session["results"].append({
-        "round": session["round"],              # the round that was just played
+        "round": 1,  # only one round
         "bar": bar,
-        "distance_km": distance_km_rounded,
-        "distance_mi": distance_mi,             # added so template can show miles
+        "distance_km": round(distance_km, 1),
+        "distance_mi": round(distance_km * 0.621371, 1),
         "round_score": round_score,
         "guessed_lat": guessed_lat,
         "guessed_lon": guessed_lon,
@@ -235,10 +229,9 @@ def guess():
         "actual_lon": actual_lon
     })
 
-    # increment for the NEXT round
-    session["round"] += 1
+    # Immediately go to result page (no round_result page)
+    return redirect(url_for("result"))
 
-    return redirect(url_for("round_result"))
 
 
 @app.route("/round_result")
@@ -317,7 +310,9 @@ def result():
                            score=score,
                            entries=entries,
                            user_email=user_email,
-                           freeplay_unlocked=session.get("freeplay_unlocked", False))
+                           freeplay_unlocked=session.get("freeplay_unlocked", False),
+                           api_key=GOOGLE_API_KEY)  # <-- add this
+
 
 # ---------- Freeplay routes ----------
 @app.route("/freeplay")
