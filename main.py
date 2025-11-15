@@ -234,34 +234,6 @@ def guess():
 
 
 
-@app.route("/round_result")
-def round_result():
-    results = session.get("results", [])
-    if not results:
-        return redirect(url_for("index"))
-
-    last_result = results[-1]
-    score = session.get("score", 0)
-
-    # Show the round that was actually played (not the next round stored in session)
-    round_num = last_result.get("round", session.get("round", 1))
-
-    share_image_url = generate_share_image(
-        last_result["actual_lat"], last_result["actual_lon"],
-        last_result["guessed_lat"], last_result["guessed_lon"],
-        last_result["round_score"], last_result["distance_km"]
-    )
-
-    return render_template(
-        "round_result.html",
-        result=last_result,
-        score=score,
-        round=round_num,
-        api_key=GOOGLE_API_KEY,
-        share_image_url=share_image_url
-    )
-
-
 # ---------- Result & Leaderboard ----------
 @app.route("/result", methods=["GET","POST"])
 def result():
