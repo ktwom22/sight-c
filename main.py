@@ -169,7 +169,7 @@ def setup_game():
 def index():
     round_num = session.get("round", 1)
     score = session.get("score", 0)
-    if round_num > 5:
+    if round_num > 4:
         return redirect(url_for("result"))
     loc = session["game_locations"][round_num-1]
     session.update({"actual_lat": loc.get("lat"), "actual_lon": loc.get("lon"), "heading": loc.get("heading",0)})
@@ -183,43 +183,70 @@ def guess():
     guessed_lon = safe_float(request.form.get("lon"))
     actual_lat = session.get("actual_lat")
     actual_lon = session.get("actual_lon")
-    if actual_lat is None or actual_lon is None: return redirect(url_for("index"))
+    if actual_lat is None or actual_lon is None:
+        return redirect(url_for("index"))
 
     distance_km = haversine(actual_lat, actual_lon, guessed_lat, guessed_lon)
+    distance_km_rounded = round(distance_km, 1)
+    distance_mi = round(distance_km * 0.621371, 1)
+
     round_score = max(0, int(1000 - distance_km))
+
     session["score"] += round_score
 
     bar = "📍🟥📍"
-    if distance_km < 5: bar = "📍🟩📍"
-    elif distance_km < 50: bar = "📍🟨📍"
-    elif distance_km < 500: bar = "📍🟧📍"
+    if distance_km < 50:
+        bar = "📍🟩📍"
+    elif distance_km < 250:
+        bar = "📍🟨📍"
+    elif distance_km < 500:
+        bar = "📍🟧📍"
 
     session["results"].append({
-        "round": session["round"],
+        "round": session["round"],              # the round that was just played
         "bar": bar,
-        "distance_km": round(distance_km,1),
+        "distance_km": distance_km_rounded,
+        "distance_mi": distance_mi,             # added so template can show miles
         "round_score": round_score,
         "guessed_lat": guessed_lat,
         "guessed_lon": guessed_lon,
         "actual_lat": actual_lat,
         "actual_lon": actual_lon
     })
+
+    # increment for the NEXT round
     session["round"] += 1
+
     return redirect(url_for("round_result"))
+
 
 @app.route("/round_result")
 def round_result():
     results = session.get("results", [])
-    if not results: return redirect(url_for("index"))
+    if not results:
+        return redirect(url_for("index"))
+
     last_result = results[-1]
     score = session.get("score", 0)
-    round_num = session.get("round", 1)
+
+    # Show the round that was actually played (not the next round stored in session)
+    round_num = last_result.get("round", session.get("round", 1))
+
     share_image_url = generate_share_image(
         last_result["actual_lat"], last_result["actual_lon"],
         last_result["guessed_lat"], last_result["guessed_lon"],
         last_result["round_score"], last_result["distance_km"]
     )
-    return render_template("round_result.html", result=last_result, score=score, round=round_num, api_key=GOOGLE_API_KEY, share_image_url=share_image_url)
+
+    return render_template(
+        "round_result.html",
+        result=last_result,
+        score=score,
+        round=round_num,
+        api_key=GOOGLE_API_KEY,
+        share_image_url=share_image_url
+    )
+
 
 # ---------- Result & Leaderboard ----------
 @app.route("/result", methods=["GET","POST"])
@@ -229,56 +256,46 @@ def result():
     if not results:
         return redirect(url_for("index"))
 
-    # Folder for daily leaderboards
-    LEADERBOARD_DIR = os.environ.get("LEADERBOARD_DIR", "/data/leaderboards")
+    # Daily leaderboard file
+    LEADERBOARD_DIR = os.environ.get("LEADERBOARD_DIR", "leaderboards")
     os.makedirs(LEADERBOARD_DIR, exist_ok=True)
     today = datetime.date.today().isoformat()
     leaderboard_file = os.path.join(LEADERBOARD_DIR, f"leaderboard_{today}.csv")
 
+    # Read current leaderboard
+    entries_dict = {}
+    if os.path.isfile(leaderboard_file):
+        with open(leaderboard_file, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                try: entries_dict[row["email"]] = int(row["score"])
+                except: continue
+
+    # Handle POST (email submission)
     if request.method == "POST":
         email = (request.form.get("email") or "").strip()
-        if is_valid_email(email):
+        if email and EMAIL_RE.match(email):
             session["email"] = email
-
-            # Read existing leaderboard
-            entries_dict = {}
-            if os.path.isfile(leaderboard_file):
-                with open(leaderboard_file, newline="", encoding="utf-8") as f:
-                    for row in csv.DictReader(f):
-                        try:
-                            entries_dict[row["email"]] = int(row["score"])
-                        except:
-                            pass
-
-            # Update with new score if higher
+            # Update score if higher
             entries_dict[email] = max(entries_dict.get(email, 0), score)
-
-            # Write leaderboard back
+            # Write back to CSV
             with open(leaderboard_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=["email", "score"])
                 writer.writeheader()
                 for e, s in entries_dict.items():
                     writer.writerow({"email": e, "score": s})
-
             session["freeplay_unlocked"] = True
             return redirect(url_for("result"))
 
-    # Load leaderboard for display
-    entries_dict = {}
-    if os.path.isfile(leaderboard_file):
-        with open(leaderboard_file, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                try:
-                    entries_dict[row["email"]] = int(row["score"])
-                except:
-                    continue
-
+    # Prepare leaderboard entries for display
     entries = [{"email": e.split("@")[0], "score": s} for e, s in entries_dict.items()]
     entries.sort(key=lambda x: x["score"], reverse=True)
-
     user_email = session.get("email", "")
-    return render_template("result.html", results=results, entries=entries,
-                           total_score=score, user_email=user_email,
+
+    return render_template("result.html",
+                           results=results,
+                           score=score,
+                           entries=entries,
+                           user_email=user_email,
                            freeplay_unlocked=session.get("freeplay_unlocked", False))
 
 # ---------- Freeplay routes ----------

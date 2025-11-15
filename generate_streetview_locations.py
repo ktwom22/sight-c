@@ -3,100 +3,141 @@ import random
 import json
 import requests
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+import traceback
 
 GOOGLE_API_KEY = "AIzaSyAQI6vnKW5-8lH24bGygQ7eNhPM79677ps"
+
 shapefile_path = r"C:\Users\ktwom\pythonProject\guesserlocation\ne_110m_populated_places.shp"
 gdf = gpd.read_file(shapefile_path)
+print(f"Loaded shapefile: {len(gdf)} populated places")
 
-NUM_LOCATIONS = 1000
+NUM_LOCATIONS = 5000
+MAX_ATTEMPTS = 20000
+THREADS = 10
+
 locations = []
+failures = 0
 
-US_BOUNDS = {"lat_min": 24, "lat_max": 50, "lon_min": -125, "lon_max": -66}
-EU_BOUNDS = {"lat_min": 35, "lat_max": 70, "lon_min": -10, "lon_max": 40}
-
-
+# -------------------------------------------
+# Street View validation
+# -------------------------------------------
 def has_street_view(lat, lon):
-    """Check if Google Street View exists and is outdoor."""
-    metadata_url = (
-        f"https://maps.googleapis.com/maps/api/streetview/metadata?"
+    url = (
+        "https://maps.googleapis.com/maps/api/streetview/metadata?"
         f"location={lat},{lon}&key={GOOGLE_API_KEY}"
     )
     try:
-        response = requests.get(metadata_url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("status") == "OK" and data.get("copyright", "").lower() != "indoor"
-    except requests.RequestException:
+        r = requests.get(url, timeout=4)
+        if r.status_code != 200:
+            return False
+        data = r.json()
+
+        # Accept only outdoor images with successful status
+        if data.get("status") == "OK":
+            return True
+
         return False
-    return False
+
+    except Exception:
+        return False
 
 
-def get_region(lat, lon):
-    """Return region for weighting: US, Europe, Other"""
-    if US_BOUNDS["lat_min"] <= lat <= US_BOUNDS["lat_max"] and US_BOUNDS["lon_min"] <= lon <= US_BOUNDS["lon_max"]:
-        return "US"
-    elif EU_BOUNDS["lat_min"] <= lat <= EU_BOUNDS["lat_max"] and EU_BOUNDS["lon_min"] <= lon <= EU_BOUNDS["lon_max"]:
-        return "Europe"
-    else:
-        return "Other"
-
-
+# -------------------------------------------
+# Point sampling
+# -------------------------------------------
 def sample_point():
-    """Randomly sample a point with weighted chance for US/Europe"""
-    if random.random() < 0.7:
-        candidates = gdf[gdf.geometry.x.between(-125, 40) & gdf.geometry.y.between(24, 70)]
-    else:
-        candidates = gdf
-
-    if candidates.empty:
-        return None
-
-    point = candidates.sample(1).iloc[0]
-    lon, lat = point.geometry.x, point.geometry.y
+    row = gdf.sample(1).iloc[0]
+    lon, lat = row.geometry.x, row.geometry.y
     heading = random.randint(0, 360)
     return lat, lon, heading
 
 
-def check_and_add(point):
-    """Check a single point for Street View and return dict if valid"""
+# -------------------------------------------
+# Worker thread
+# -------------------------------------------
+def worker_check(point, attempt_number):
     if point is None:
         return None
+
     lat, lon, heading = point
+
+    print(f"[Attempt {attempt_number}] Checking {lat:.5f}, {lon:.5f} ...")
+
     if has_street_view(lat, lon):
+        print(f"✔️  Valid Street View FOUND at {lat:.5f}, {lon:.5f}")
         return {
             "lat": round(lat, 6),
             "lon": round(lon, 6),
-            "heading": heading,
-            "region": get_region(lat, lon),
-            "type": "outdoor"
+            "heading": heading
         }
+
+    print(f"❌  No Street View at {lat:.5f}, {lon:.5f}")
     return None
 
 
-attempts = 0
-max_attempts = 20000
-threads = 10  # Number of parallel threads
+# -------------------------------------------
+# Main generation loop
+# -------------------------------------------
+def main():
+    global failures
 
-with ThreadPoolExecutor(max_workers=threads) as executor:
-    futures = []
+    attempts = 0
+    start_time = time.time()
 
-    while len(locations) < NUM_LOCATIONS and attempts < max_attempts:
-        attempts += 1
-        point = sample_point()
-        futures.append(executor.submit(check_and_add, point))
+    with ThreadPoolExecutor(max_workers=THREADS) as executor:
+        futures = {}
 
-        # Collect completed futures
-        for future in as_completed(futures):
-            result = future.result()
-            if result:
-                locations.append(result)
-                print(f"Added location #{len(locations)}: {result['lat']}, {result['lon']}")
-            futures.remove(future)
+        while len(locations) < NUM_LOCATIONS and attempts < MAX_ATTEMPTS:
+            attempts += 1
+            point = sample_point()
 
-        time.sleep(0.05)  # Slight pause to avoid hammering API
+            fut = executor.submit(worker_check, point, attempts)
+            futures[fut] = attempts
 
-with open("streetview_locations.json", "w", encoding="utf-8") as f:
-    json.dump(locations, f, indent=2)
+            # Check finished tasks
+            ready = [f for f in list(futures.keys()) if f.done()]
+            for f in ready:
+                attempt_id = futures.pop(f)
+                try:
+                    result = f.result()
+                except Exception as e:
+                    failures += 1
+                    print(f"⚠️ Worker crashed on attempt {attempt_id}")
+                    traceback.print_exc()
+                    continue
 
-print(f"Generated {len(locations)} valid Street View locations in streetview_locations.json")
+                if result:
+                    locations.append(result)
+                    print(f"\n🎯 Added {len(locations)}/{NUM_LOCATIONS} → "
+                          f"{result['lat']}, {result['lon']}\n")
+                else:
+                    failures += 1
+
+            # live progress output
+            elapsed = time.time() - start_time
+            speed = attempts / max(elapsed, 1)
+            print(f"Progress: {len(locations)}/{NUM_LOCATIONS} | Attempts: {attempts} | "
+                  f"Failures: {failures} | {speed:.1f} attempts/sec\r", end="")
+
+            time.sleep(0.02)
+
+    print("\n\n------------------------")
+    print(" Generation Complete ")
+    print("------------------------")
+    print(f"Valid locations: {len(locations)}")
+    print(f"Total attempts: {attempts}")
+    print(f"Failures: {failures}")
+
+    # Save results
+    with open("streetview_locations.json", "w", encoding="utf-8") as f:
+        json.dump(locations, f, indent=2)
+
+    print("Saved → streetview_locations.json")
+
+
+# -------------------------------------------
+# Run
+# -------------------------------------------
+if __name__ == "__main__":
+    main()

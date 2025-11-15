@@ -1,51 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8WQ2J22B9Z"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-8WQ2J22B9Z');
-  </script>
-
   <meta charset="utf-8">
   <title>🎯 GeoGuesser Results</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f5f6fa;
-      color: #333;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; text-align: center; margin: 0; padding: 20px; }
     h1 { font-size: 1.8em; margin-bottom: 15px; }
-    .result-box {
-      background: #fff;
-      max-width: 400px;
-      margin: 0 auto 20px;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
+    .result-box { background: #fff; max-width: 400px; margin: 0 auto 20px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .score { font-size: 1.5em; font-weight: 600; margin-bottom: 12px; }
     .round-bars { font-size: 1.3em; margin-bottom: 10px; line-height: 1.5; }
-    .note { font-size: 0.85em; color: #777; margin-bottom: 12px; }
-
-    .copy-btn, .submit-btn, .freeplay-btn, .leaderboard-btn {
-      margin-top: 10px;
-      padding: 8px 20px;
-      border-radius: 6px;
-      font-size: 0.95em;
-      cursor: pointer;
-      border: none;
-      font-weight: 500;
-    }
-
+    .copy-btn, .submit-btn, .freeplay-btn, .leaderboard-btn { margin-top: 10px; padding: 8px 20px; border-radius: 6px; font-size: 0.95em; cursor: pointer; border: none; font-weight: 500; }
     .copy-btn { background: #3498db; color: #fff; }
     .copy-btn:hover { background: #2980b9; }
     .submit-btn { background: #1abc9c; color: #fff; }
@@ -54,68 +18,13 @@
     .freeplay-btn:hover { background: #1e8449; }
     .leaderboard-btn { background: #f39c12; color: #fff; }
     .leaderboard-btn:hover { background: #d35400; }
-
-    input[type="email"] {
-      padding: 6px;
-      width: 65%;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 0.95em;
-    }
-
-    /* Leaderboard modal */
-    #leaderboard-modal {
-      display: none;
-      position: fixed;
-      top:0; left:0;
-      width:100%; height:100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 999;
-      justify-content: center;
-      align-items: center;
-    }
-
-    #leaderboard-modal .modal-content {
-      background:#fff;
-      padding:20px;
-      border-radius:12px;
-      max-width:400px;
-      width:90%;
-      text-align:center;
-      box-shadow:0 4px 12px rgba(0,0,0,0.2);
-      position: relative;
-    }
-
-    #leaderboard-modal table {
-      width: 100%;
-      margin-top: 10px;
-      border-collapse: collapse;
-    }
-    #leaderboard-modal th, #leaderboard-modal td {
-      padding: 6px 8px;
-      font-size: 0.9em;
-    }
-    #leaderboard-modal th {
-      background: #3498db;
-      color: #fff;
-      border-radius: 6px;
-    }
-    #leaderboard-modal tr.highlight { background: #d1f2eb; font-weight: 600; }
-
-    #leaderboard-modal button {
-      margin-top: 15px;
-      padding: 6px 12px;
-      border: none;
-      background: #3498db;
-      color: #fff;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
+    input[type="email"] { padding: 6px; width: 65%; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95em; }
     .prompt { font-size: 0.9em; color: #555; margin-top: 8px; }
-
-    /* Expedia banner spacing */
-    .eg-affiliate-banners { margin-top: 15px; display: flex; justify-content: center; }
+    #leaderboard { background: #fff; max-width: 400px; margin: 20px auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: none; }
+    #leaderboard table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    #leaderboard th, #leaderboard td { padding: 6px 8px; font-size: 0.9em; }
+    #leaderboard th { background: #3498db; color: #fff; border-radius: 6px; }
+    #leaderboard tr.highlight { background: #d1f2eb; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -123,45 +32,47 @@
   <h1>🏁 Your Results</h1>
 
   <div class="result-box">
-    <div class="score">Total Score: {{ score }}</div>
-
+    <div class="score">Total Score: {{ total_score }}</div>
     <div class="round-bars">
       {% for r in results %}
         {{ r.bar }}<br>
       {% endfor %}
     </div>
-
     <div class="note">Distance bars show how close your guesses were each round.</div>
 
     <button class="copy-btn" onclick="copyShare()">📋 Copy Results</button>
 
     <div id="action-section">
       {% if not user_email %}
-        <div class="prompt">Want to unlock Free Play? Submit your score!</div>
-        <div id="email-form">
-          <input type="email" id="email-input" placeholder="Enter your email" required>
-          <button class="submit-btn" onclick="submitEmail()">Submit</button>
-        </div>
+        <form method="POST" action="{{ url_for('result') }}">
+          <div class="prompt">Want to unlock Free Play? Submit your score!</div>
+          <input type="email" name="email" placeholder="Enter your email" required>
+          <button type="submit" class="submit-btn">Submit</button>
+        </form>
       {% elif freeplay_unlocked %}
         <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
-        <button class="leaderboard-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
+        <button class="leaderboard-btn" onclick="document.getElementById('leaderboard').style.display='block';">🏆 Leaderboard</button>
       {% endif %}
     </div>
+  </div>
 
-    <!-- Expedia Affiliate Banner -->
-    <div class="eg-affiliate-banners"
-         data-program="us-expedia"
-         data-network="pz"
-         data-layout="medium-rectangle"
-         data-image="adventure"
-         data-message="bye-bye-bucket-list-hello-adventure"
-         data-camref="1100l5uUXS"
-         data-pubref=""
-         data-link="home">
-    </div>
-    <script class="eg-affiliate-banners-script"
-            src="https://creator.expediagroup.com/products/banners/assets/eg-affiliate-banners.js">
-    </script>
+  <!-- Leaderboard -->
+  <div id="leaderboard">
+    <h2>🏆 Daily Leaderboard</h2>
+    <table>
+      <tr>
+        <th>Player</th>
+        <th>Score</th>
+      </tr>
+      {% set user_display = user_email.split('@')[0] if user_email else "" %}
+      {% for e in entries %}
+        <tr {% if e.email.split('@')[0] == user_display %}class="highlight"{% endif %}>
+          <td>{{ e.email.split('@')[0] }}</td>
+          <td>{{ e.score }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    <button onclick="document.getElementById('leaderboard').style.display='none';">Close</button>
   </div>
 
   <textarea id="share-text" style="display:none;">
@@ -169,71 +80,20 @@
 {% for r in results %}
 {{ r.bar }}
 {% endfor %}
-🏁 Total Score: {{ score }}
+🏁 Total Score: {{ total_score }}
   </textarea>
 
-<!-- Leaderboard Modal -->
-<div id="leaderboard-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
-  <div style="background:#fff; padding:20px; border-radius:12px; max-width:350px; margin:auto; text-align:center; position:relative;">
-    <h2>🏆 Top Players</h2>
-    <table style="width:100%; border-collapse:collapse;">
-      <tr><th>Email</th><th>Score</th></tr>
-      {% for e in entries[:5] %}
-        <tr {% if e.email == user_email.split('@')[0] %} style="background:#d1f2eb; font-weight:600;" {% endif %}>
-          <td>{{ e.email }}</td>
-          <td>{{ e.score }}</td>
-        </tr>
-      {% endfor %}
-    </table>
-    <button onclick="document.getElementById('leaderboard-modal').style.display='none';">Close</button>
-  </div>
-</div>
+<script>
+  function copyShare() {
+    const shareText = document.getElementById('share-text').value;
+    navigator.clipboard.writeText(shareText).then(() => { alert("✅ Results copied to clipboard!"); });
+  }
 
-<!-- Button to open leaderboard -->
-<button onclick="document.getElementById('leaderboard-modal').style.display='flex';">Show Leaderboard</button>
-
-
-  <script>
-    function copyShare() {
-      const shareText = document.getElementById('share-text').value;
-      navigator.clipboard.writeText(shareText).then(() => {
-        alert("✅ Results copied to clipboard!");
-      }).catch(() => { alert("❌ Could not copy results."); });
-    }
-
-    function submitEmail() {
-      const email = document.getElementById('email-input').value.trim();
-      if (!email) return alert("Please enter an email.");
-      fetch("{{ url_for('result') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `email=${encodeURIComponent(email)}`
-      })
-      .then(res => {
-        if (res.ok || res.status === 302) {
-          document.getElementById('action-section').innerHTML = `
-            <button class="freeplay-btn" onclick="window.location.href='/freeplay'">🌍 Free Play</button>
-            <button class="leaderboard-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
-          `;
-          alert("✅ Email submitted! Free Play unlocked.");
-          openLeaderboard(); // automatically show leaderboard
-        } else { alert("❌ Error submitting email."); }
-      });
-    }
-
-    function openLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'flex'; }
-    function closeLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'none'; }
-
-    window.onclick = function(event) {
-      const modal = document.getElementById('leaderboard-modal');
-      if (event.target == modal) modal.style.display = 'none';
-    }
-
-    // Auto open leaderboard if user already submitted email
-    {% if user_email %}
-      openLeaderboard();
-    {% endif %}
-  </script>
+  // Auto-show leaderboard if email already submitted
+  {% if user_email %}
+    document.getElementById('leaderboard').style.display = 'block';
+  {% endif %}
+</script>
 
 </body>
 </html>

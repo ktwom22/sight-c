@@ -167,7 +167,7 @@
     <div style="position: relative;">
       <div id="map"></div>
       <div class="map-overlay">
-        {% if round >= 5 %}
+        {% if round >= 3 %}
           <a href="{{ url_for('result') }}" class="btn-final">🏁 See Final Results</a>
         {% else %}
           <a href="{{ url_for('index') }}" class="btn-next">➡️ Next Round</a>
